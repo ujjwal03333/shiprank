@@ -1,0 +1,9 @@
+{
+  "extends": "@shiprank/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "outDir": "dist",
+    "noEmit": true
+  },
+  "include": ["src"]
+}
