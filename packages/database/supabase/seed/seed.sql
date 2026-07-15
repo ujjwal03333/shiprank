@@ -43,23 +43,23 @@ insert into scans (id, project_id, status, score, grade, station_count, check_co
 
 -- SaaSly (scan aaaa1111): decent overall, weak security
 insert into station_results (id, scan_id, station, score, grade, pass_count, warn_count, fail_count) values
-  ('bb110001-0001-0001-0001-000000000001', 'aaaa1111-1111-1111-1111-111111111111', 'security',      55, 'D', 6, 2, 4),
+  ('bb110001-0001-0001-0001-000000000001', 'aaaa1111-1111-1111-1111-111111111111', 'security',      55, 'C', 6, 2, 4),
   ('bb110001-0001-0001-0001-000000000002', 'aaaa1111-1111-1111-1111-111111111111', 'accessibility',  82, 'B', 5, 1, 0),
-  ('bb110001-0001-0001-0001-000000000003', 'aaaa1111-1111-1111-1111-111111111111', 'performance',    74, 'C', 4, 1, 1),
+  ('bb110001-0001-0001-0001-000000000003', 'aaaa1111-1111-1111-1111-111111111111', 'performance',    74, 'B', 4, 1, 1),
   ('bb110001-0001-0001-0001-000000000004', 'aaaa1111-1111-1111-1111-111111111111', 'growth',         90, 'A', 7, 1, 0);
 
 -- BudgetBro (scan aaaa2222): strong security, weak a11y
 insert into station_results (id, scan_id, station, score, grade, pass_count, warn_count, fail_count) values
   ('bb220001-0001-0001-0001-000000000001', 'aaaa2222-2222-2222-2222-222222222222', 'security',      88, 'A', 10, 1, 1),
-  ('bb220001-0001-0001-0001-000000000002', 'aaaa2222-2222-2222-2222-222222222222', 'accessibility',  42, 'F', 2, 1, 3),
+  ('bb220001-0001-0001-0001-000000000002', 'aaaa2222-2222-2222-2222-222222222222', 'accessibility',  42, 'D', 2, 1, 3),
   ('bb220001-0001-0001-0001-000000000003', 'aaaa2222-2222-2222-2222-222222222222', 'performance',    65, 'C', 3, 2, 1),
-  ('bb220001-0001-0001-0001-000000000004', 'aaaa2222-2222-2222-2222-222222222222', 'growth',         70, 'C', 5, 2, 1);
+  ('bb220001-0001-0001-0001-000000000004', 'aaaa2222-2222-2222-2222-222222222222', 'growth',         70, 'B', 5, 2, 1);
 
 -- DevDash (scan aaaa3333): strong across the board
 insert into station_results (id, scan_id, station, score, grade, pass_count, warn_count, fail_count) values
   ('bb330001-0001-0001-0001-000000000001', 'aaaa3333-3333-3333-3333-333333333333', 'security',      92, 'A', 11, 1, 0),
   ('bb330001-0001-0001-0001-000000000002', 'aaaa3333-3333-3333-3333-333333333333', 'accessibility',  88, 'A', 5, 1, 0),
-  ('bb330001-0001-0001-0001-000000000003', 'aaaa3333-3333-3333-3333-333333333333', 'performance',    85, 'B', 5, 1, 0),
+  ('bb330001-0001-0001-0001-000000000003', 'aaaa3333-3333-3333-3333-333333333333', 'performance',    85, 'A', 5, 1, 0),
   ('bb330001-0001-0001-0001-000000000004', 'aaaa3333-3333-3333-3333-333333333333', 'growth',         78, 'B', 6, 1, 1);
 
 -- ============================================================
@@ -139,7 +139,7 @@ insert into agents_md_outputs (scan_id, content, rule_count) values
 -- ============================================================
 -- NOW UPDATE SCANS TO 'completed' → TRIGGERS LEADERBOARD UPSERT
 -- ============================================================
-update scans set status = 'completed', score = 75, grade = 'C',
+update scans set status = 'completed', score = 75, grade = 'B',
   issue_count = 5, duration_ms = 3200, completed_at = now() - interval '59 minutes'
   where id = 'aaaa1111-1111-1111-1111-111111111111';
 
