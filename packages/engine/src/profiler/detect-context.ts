@@ -143,9 +143,11 @@ export async function detectContext(
     DB_DEPS.some((d) => d in allDeps) ||
     fileNames.some(
       (f) =>
+        f.startsWith("supabase/") ||        // supabase/ project folder
         f.includes("prisma/schema") ||
-        f.includes("drizzle") ||
-        f.includes("migrations"),
+        f.startsWith("drizzle/") ||
+        f.includes("/drizzle/") ||
+        f.includes("migrations/"),
     );
 
   const hasAPI = fileNames.some(

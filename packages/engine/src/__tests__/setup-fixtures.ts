@@ -12,6 +12,29 @@ export function cleanFixtures(): void {
   rmSync(FIXTURE_ROOT, { recursive: true, force: true });
 }
 
+const PROFILER_FIXTURE_NAMES = ["nextjs-app", "vite-app", "remix-app", "empty-project", "monorepo"];
+const SANITY_FIXTURE_NAMES = [
+  "supabase-dep",
+  "supabase-folder",
+  "clerk-app",
+  "next-auth-app",
+  "auth-js-app",
+  "supabase-auth-helpers",
+  "no-auth-no-db",
+];
+
+export function cleanProfilerFixtures(): void {
+  for (const name of PROFILER_FIXTURE_NAMES) {
+    rmSync(fixtureDir(name), { recursive: true, force: true });
+  }
+}
+
+export function cleanSanityFixtures(): void {
+  for (const name of SANITY_FIXTURE_NAMES) {
+    rmSync(fixtureDir(name), { recursive: true, force: true });
+  }
+}
+
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true });
 }
@@ -120,6 +143,86 @@ export function createRemixFixture(): string {
 export function createEmptyFixture(): string {
   const root = fixtureDir("empty-project");
   ensureDir(root);
+  return root;
+}
+
+// ── Sanity-check fixtures for hasDatabase / hasAuth ─────────────────────────
+
+/** Project that has @supabase/supabase-js in deps */
+export function createSupabaseDepFixture(): string {
+  const root = fixtureDir("supabase-dep");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "supabase-dep-project",
+    dependencies: { "@supabase/supabase-js": "2.45.0" },
+  });
+  return root;
+}
+
+/** Project that has a supabase/ folder but NO dep */
+export function createSupabaseFolderFixture(): string {
+  const root = fixtureDir("supabase-folder");
+  ensureDir(join(root, "supabase", "migrations"));
+  writeJson(join(root, "package.json"), { name: "supabase-folder-project" });
+  writeText(join(root, "supabase", "migrations", "001_init.sql"), "select 1;");
+  return root;
+}
+
+/** Project with @clerk/nextjs */
+export function createClerkFixture(): string {
+  const root = fixtureDir("clerk-app");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "clerk-app",
+    dependencies: { "@clerk/nextjs": "5.3.0", next: "14.2.0" },
+  });
+  return root;
+}
+
+/** Project with next-auth */
+export function createNextAuthFixture(): string {
+  const root = fixtureDir("next-auth-app");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "next-auth-app",
+    dependencies: { "next-auth": "4.24.0", next: "14.2.0" },
+  });
+  return root;
+}
+
+/** Project with @auth/core (Auth.js v5) */
+export function createAuthJsFixture(): string {
+  const root = fixtureDir("auth-js-app");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "auth-js-app",
+    dependencies: { "@auth/core": "0.32.0", next: "14.2.0" },
+  });
+  return root;
+}
+
+/** Project with @supabase/auth-helpers-nextjs */
+export function createSupabaseAuthHelpersFixture(): string {
+  const root = fixtureDir("supabase-auth-helpers");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "supabase-auth-helpers",
+    dependencies: {
+      "@supabase/auth-helpers-nextjs": "0.10.0",
+      next: "14.2.0",
+    },
+  });
+  return root;
+}
+
+/** Project with no auth or database at all */
+export function createNoAuthNoDbFixture(): string {
+  const root = fixtureDir("no-auth-no-db");
+  ensureDir(root);
+  writeJson(join(root, "package.json"), {
+    name: "plain-app",
+    dependencies: { react: "18.3.0" },
+  });
   return root;
 }
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { profileProject } from "../profiler";
-import { detectFramework } from "../profiler/detect-framework";
+import { detectFramework, readPackageJson } from "../profiler/detect-framework";
 import { detectContext } from "../profiler/detect-context";
 import {
-  cleanFixtures,
+  cleanProfilerFixtures,
   createNextjsFixture,
   createViteFixture,
   createRemixFixture,
@@ -18,7 +18,7 @@ let emptyRoot: string;
 let monorepoRoot: string;
 
 beforeAll(() => {
-  cleanFixtures();
+  cleanProfilerFixtures();
   nextjsRoot = createNextjsFixture();
   viteRoot = createViteFixture();
   remixRoot = createRemixFixture();
@@ -27,7 +27,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  cleanFixtures();
+  cleanProfilerFixtures();
 });
 
 describe("detectFramework", () => {
@@ -68,91 +68,91 @@ describe("detectFramework", () => {
 
 describe("detectContext", () => {
   it("detects auth in Next.js project (Supabase SSR)", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasAuth).toBe(true);
   });
 
   it("detects database in Next.js project (Supabase)", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasDatabase).toBe(true);
   });
 
   it("detects API routes", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasAPI).toBe(true);
   });
 
   it("detects tests", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasTests).toBe(true);
   });
 
   it("detects CI/CD", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasCICD).toBe(true);
   });
 
   it("detects env files", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasEnvFile).toBe(true);
   });
 
   it("detects TypeScript", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasTypeScript).toBe(true);
   });
 
   it("detects linting", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.hasLinting).toBe(true);
   });
 
   it("detects package manager: pnpm", async () => {
-    const pkg = (await import(nextjsRoot + "/package.json")).default;
+    const pkg = await readPackageJson(nextjsRoot);
     const ctx = await detectContext(nextjsRoot, pkg);
     expect(ctx.packageManager).toBe("pnpm");
   });
 
   it("detects package manager: npm (via lockfile)", async () => {
-    const pkg = (await import(viteRoot + "/package.json")).default;
+    const pkg = await readPackageJson(viteRoot);
     const ctx = await detectContext(viteRoot, pkg);
     expect(ctx.packageManager).toBe("npm");
   });
 
   it("detects package manager: yarn (via lockfile)", async () => {
-    const pkg = (await import(remixRoot + "/package.json")).default;
+    const pkg = await readPackageJson(remixRoot);
     const ctx = await detectContext(remixRoot, pkg);
     expect(ctx.packageManager).toBe("yarn");
   });
 
   it("detects no auth in Vite project", async () => {
-    const pkg = (await import(viteRoot + "/package.json")).default;
+    const pkg = await readPackageJson(viteRoot);
     const ctx = await detectContext(viteRoot, pkg);
     expect(ctx.hasAuth).toBe(false);
   });
 
   it("detects no database in Vite project", async () => {
-    const pkg = (await import(viteRoot + "/package.json")).default;
+    const pkg = await readPackageJson(viteRoot);
     const ctx = await detectContext(viteRoot, pkg);
     expect(ctx.hasDatabase).toBe(false);
   });
 
   it("detects monorepo", async () => {
-    const pkg = (await import(monorepoRoot + "/package.json")).default;
+    const pkg = await readPackageJson(monorepoRoot);
     const ctx = await detectContext(monorepoRoot, pkg);
     expect(ctx.hasMonorepo).toBe(true);
   });
 
   it("non-monorepo project returns false", async () => {
-    const pkg = (await import(viteRoot + "/package.json")).default;
+    const pkg = await readPackageJson(viteRoot);
     const ctx = await detectContext(viteRoot, pkg);
     expect(ctx.hasMonorepo).toBe(false);
   });
