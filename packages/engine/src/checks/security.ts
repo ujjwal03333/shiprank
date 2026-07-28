@@ -34,7 +34,7 @@ function pass(base: Omit<CheckResult, "passed" | "failMessage" | "evidence">): C
   return { ...base, passed: true, failMessage: "", evidence: "" };
 }
 
-function fail(base: Omit<CheckResult, "passed">, failMessage: string, evidence: string): CheckResult {
+function fail(base: Omit<CheckResult, "passed" | "failMessage" | "evidence">, failMessage: string, evidence: string): CheckResult {
   return { ...base, passed: false, failMessage, evidence };
 }
 

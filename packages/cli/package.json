@@ -1,0 +1,35 @@
+{
+  "name": "shiprank",
+  "version": "1.0.0",
+  "description": "Rank your AI-built app against production standards",
+  "main": "./dist/index.js",
+  "bin": {
+    "shiprank": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shiprank/compile": "workspace:*",
+    "@shiprank/database": "workspace:*",
+    "@shiprank/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@shiprank/tsconfig": "workspace:*",
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.4"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

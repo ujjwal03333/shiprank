@@ -5,7 +5,7 @@ const JSX_EXTS = new Set([".tsx", ".jsx", ".html"]);
 function pass(base: Omit<CheckResult, "passed" | "failMessage" | "evidence">): CheckResult {
   return { ...base, passed: true, failMessage: "", evidence: "" };
 }
-function fail(base: Omit<CheckResult, "passed">, failMessage: string, evidence: string): CheckResult {
+function fail(base: Omit<CheckResult, "passed" | "failMessage" | "evidence">, failMessage: string, evidence: string): CheckResult {
   return { ...base, passed: false, failMessage, evidence };
 }
 

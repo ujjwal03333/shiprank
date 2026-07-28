@@ -135,11 +135,11 @@ async function getGitCommits(root: string): Promise<GitCommit[] | null> {
     const blocks = stdout.split(/(?=SHIPRANK_COMMIT )/);
 
     for (const block of blocks) {
-      const firstLine = block.split("\n")[0];
-      const match = firstLine?.match(/^SHIPRANK_COMMIT ([a-f0-9]{7,40}) (.+)$/);
+      const firstLine = block.split("\n")[0] ?? "";
+      const match = firstLine.match(/^SHIPRANK_COMMIT ([a-f0-9]{7,40}) (.+)$/);
       if (!match) continue;
-      const hash = match[1];
-      const message = match[2];
+      const hash = match[1] ?? "";
+      const message = match[2] ?? "";
       // Grab diff portion (rest of block after first line), truncate to 8KB
       const diff = block.slice(firstLine.length + 1, 8192);
       commits.push({ hash, message, diff });
