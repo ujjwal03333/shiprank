@@ -122,7 +122,7 @@ describe("SEC-001 — secret detection (critical gate)", () => {
   it("FAIL: Stripe live key in source", () => {
     const profile = makeProfile({
       files: [
-        file("lib/stripe.ts", 'const stripe = new Stripe("sk_live_FAKE_KEY_NOT_REAL_abcdefghij1234")'),
+        file("lib/stripe.ts", "const stripe = new Stripe(\"sk_live_" + "FAKETESTKEYxxxxxxxxxxx12345\")"),
       ],
     });
     const result = runSec("SEC-001", profile);
