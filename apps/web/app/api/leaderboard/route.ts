@@ -94,7 +94,10 @@ export async function GET() {
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Leaderboard fetch failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Leaderboard fetch error:", err);
+    return NextResponse.json(
+      { error: "Leaderboard temporarily unavailable." },
+      { status: 500 },
+    );
   }
 }

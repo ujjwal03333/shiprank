@@ -47,7 +47,10 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
-    return NextResponse.json({ error: result.message }, { status: 502 });
+    return NextResponse.json(
+      { error: "Compile temporarily unavailable. Please try again later." },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({

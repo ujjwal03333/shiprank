@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { ScoreGauge } from "@/app/components/score-gauge";
 import {
@@ -223,7 +222,26 @@ export default async function ScanPage({
     .eq("id", id)
     .single();
 
-  if (error || !scan) notFound();
+  if (error || !scan) {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-24 text-center flex flex-col gap-4">
+        <p className="font-display text-xl text-ink">Scan not found</p>
+        <p className="font-body text-sm text-ink-muted max-w-sm mx-auto">
+          This scan ID doesn&apos;t exist or may have been removed.
+          Double-check the URL or run a new scan.
+        </p>
+        <code className="font-mono text-sm bg-surface-sunken border border-border px-4 py-2 rounded-md text-ink mx-auto">
+          npx shiprank ./your-project --upload
+        </code>
+        <a
+          href="/"
+          className="font-mono text-xs text-brand hover:underline mt-2"
+        >
+          ← Back to ShipRank
+        </a>
+      </div>
+    );
+  }
 
   const typedScan = scan as unknown as Scan;
   const project = typedScan.projects;
