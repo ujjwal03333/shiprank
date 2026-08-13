@@ -8,3 +8,5 @@ dist
 .DS_Store
 coverage
 .vercel
+supabase/.temp/
+**/supabase/.temp/

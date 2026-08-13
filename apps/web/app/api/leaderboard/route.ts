@@ -1,93 +1,118 @@
 import { NextResponse } from "next/server";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  aggregateLeaderboard,
+  type LeaderboardRow,
+} from "@/lib/leaderboard-agg";
+import type { Provenance } from "@/lib/provenance";
 
 const CACHE_TTL_SECONDS = 60;
 
-async function fetchLeaderboard(db: Awaited<ReturnType<typeof getServiceClient>>) {
-  const { data: entries, error } = await db
+const BASE_COLS =
+  "scan_id, project_name, platform, framework, score, grade, url, station_scores, scanned_at";
+const SYBIL_COLS = ", provenance, content_hash, file_count, line_count";
+
+async function fetchRows(
+  db: Awaited<ReturnType<typeof getServiceClient>>,
+): Promise<LeaderboardRow[]> {
+  // Prefer the enriched select (post migration 00004). If those columns don't
+  // exist yet, fall back to base columns and treat every row as an eligible
+  // verified row — this preserves the exact pre-migration leaderboard behavior
+  // so the site keeps working before the provenance migration is applied.
+  const enriched = await db
     .from("leaderboard_entries")
-    .select("scan_id, project_name, platform, framework, score, grade, url, station_scores, scanned_at")
+    .select(BASE_COLS + SYBIL_COLS)
     .order("score", { ascending: false })
     .limit(100);
 
-  if (error) throw new Error(error.message);
-
-  // Platform aggregate: avg score per platform
-  const byPlatform: Record<string, { total: number; count: number }> = {};
-  const byFramework: Record<string, { total: number; count: number }> = {};
-
-  for (const e of entries ?? []) {
-    const score = e.score as number;
-    const plat = (e.platform as string | null) ?? "unknown";
-    byPlatform[plat] ??= { total: 0, count: 0 };
-    byPlatform[plat]!.total += score;
-    byPlatform[plat]!.count++;
-
-    const fw = (e.framework as string | null) ?? "unknown";
-    byFramework[fw] ??= { total: 0, count: 0 };
-    byFramework[fw]!.total += score;
-    byFramework[fw]!.count++;
+  if (!enriched.error) {
+    return ((enriched.data ?? []) as unknown as Record<string, unknown>[]).map((e) => ({
+      scanId: e.scan_id as string,
+      projectName: e.project_name as string,
+      platform: (e.platform as string | null) ?? null,
+      framework: (e.framework as string | null) ?? null,
+      score: e.score as number,
+      grade: e.grade as string,
+      url: (e.url as string | null) ?? null,
+      stationScores: (e.station_scores as Record<string, number>) ?? {},
+      scannedAt: e.scanned_at as string,
+      provenance: ((e.provenance as string | null) ?? "self-reported") as Provenance,
+      contentHash: (e.content_hash as string | null) ?? null,
+      fileCount: (e.file_count as number | null) ?? 0,
+      lineCount: (e.line_count as number | null) ?? 0,
+    }));
   }
 
-  const platformLeaderboard = Object.entries(byPlatform)
-    .map(([platform, { total, count }]) => ({
-      platform,
-      avgScore: Math.round(total / count),
-      projectCount: count,
-    }))
-    .sort((a, b) => b.avgScore - a.avgScore);
+  const base = await db
+    .from("leaderboard_entries")
+    .select(BASE_COLS)
+    .order("score", { ascending: false })
+    .limit(100);
+  if (base.error) throw new Error(base.error.message);
 
-  const frameworkLeaderboard = Object.entries(byFramework)
-    .map(([framework, { total, count }]) => ({
-      framework,
-      avgScore: Math.round(total / count),
-      projectCount: count,
-    }))
-    .sort((a, b) => b.avgScore - a.avgScore);
-
-  return { entries, platformLeaderboard, frameworkLeaderboard };
+  return ((base.data ?? []) as Record<string, unknown>[]).map((e) => ({
+    scanId: e.scan_id as string,
+    projectName: e.project_name as string,
+    platform: (e.platform as string | null) ?? null,
+    framework: (e.framework as string | null) ?? null,
+    score: e.score as number,
+    grade: e.grade as string,
+    url: (e.url as string | null) ?? null,
+    stationScores: (e.station_scores as Record<string, number>) ?? {},
+    scannedAt: e.scanned_at as string,
+    // Pre-migration fallback: count every row (unique hash avoids dedup collapse).
+    provenance: "verified" as Provenance,
+    contentHash: e.scan_id as string,
+    fileCount: 999,
+    lineCount: 99999,
+  }));
 }
 
-async function getCachedLeaderboard() {
+async function getRows(): Promise<{ rows: LeaderboardRow[]; fromCache: boolean }> {
   const url = process.env["UPSTASH_REDIS_REST_URL"];
   const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
-  const CACHE_KEY = "leaderboard:v1";
+  const CACHE_KEY = "leaderboard:rows:v2";
 
   if (url && token) {
     const { Redis } = await import("@upstash/redis");
     const redis = new Redis({ url, token });
-
     let cached: string | null = null;
     try {
       cached = await redis.get<string>(CACHE_KEY);
     } catch (err) {
       console.error("Leaderboard cache read failed, falling back to DB:", err);
     }
-    if (cached) return { data: JSON.parse(cached) as Record<string, unknown>, fromCache: true };
+    if (cached) return { rows: JSON.parse(cached) as LeaderboardRow[], fromCache: true };
 
-    const db = getServiceClient();
-    const data = await fetchLeaderboard(db);
+    const rows = await fetchRows(getServiceClient());
     try {
-      await redis.setex(CACHE_KEY, CACHE_TTL_SECONDS, JSON.stringify(data));
+      await redis.setex(CACHE_KEY, CACHE_TTL_SECONDS, JSON.stringify(rows));
     } catch (err) {
       console.error("Leaderboard cache write failed, serving uncached:", err);
     }
-    return { data, fromCache: false };
+    return { rows, fromCache: false };
   }
 
-  const db = getServiceClient();
-  const data = await fetchLeaderboard(db);
-  return { data, fromCache: false };
+  return { rows: await fetchRows(getServiceClient()), fromCache: false };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
+  const provenanceParam = new URL(request.url).searchParams.get("provenance");
+  const provenanceFilter =
+    provenanceParam === "verified" ||
+    provenanceParam === "seed" ||
+    provenanceParam === "self-reported"
+      ? (provenanceParam as Provenance)
+      : undefined;
+
   try {
-    const { data, fromCache } = await getCachedLeaderboard();
-    return NextResponse.json(data, {
+    const { rows, fromCache } = await getRows();
+    const result = aggregateLeaderboard(rows, { provenanceFilter });
+    return NextResponse.json(result, {
       headers: {
         "Cache-Control": `public, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30`,
         "X-Cache": fromCache ? "HIT" : "MISS",

@@ -7,6 +7,7 @@ export interface ParsedArgs {
   upload: boolean;
   rules: boolean;
   compilePrompt: string;
+  help: boolean;
 }
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -20,7 +21,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
     upload: false,
     rules: false,
     compilePrompt: "",
+    help: false,
   };
+
+  if (args[0] === "--help" || args[0] === "-h") {
+    result.help = true;
+    return result;
+  }
 
   if (args[0] === "compile") {
     result.command = "compile";

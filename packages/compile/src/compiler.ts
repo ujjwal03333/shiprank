@@ -1,6 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { COMPILE_SYSTEM_PROMPT } from "./prompt";
 import type { RateLimiter, RateLimitResult } from "./rate-limiter";
+import {
+  detectStack,
+  getApplicableConstraints,
+  renderConstraintBlock,
+  type StackKey,
+  type FocusMode,
+} from "./stack";
 
 export interface CompiledStep {
   name: string;
@@ -17,19 +24,13 @@ export interface CompileResult {
   steps: CompiledStep[];
   isSingleStep: boolean;
   rateLimit: RateLimitResult;
+  detectedStack: StackKey[];
+  focusMode: FocusMode;
 }
 
 export type CompileError =
   | { kind: "rate_limited"; resetAt: number }
   | { kind: "api_error"; message: string };
-
-const SECURITY_PHRASES = [
-  "rls enabled",
-  "server-side environment",
-  "server-side session",
-  "zod",
-  "error boundary",
-];
 
 function extractSection(text: string, header: string): string {
   const re = new RegExp(`## ${header}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`, "i");
@@ -37,40 +38,67 @@ function extractSection(text: string, header: string): string {
   return match ? match[1]!.trim() : "";
 }
 
-function ensureSecurityBaseline(constraints: string): string {
-  const lower = constraints.toLowerCase();
-  const allPresent = SECURITY_PHRASES.every((p) => lower.includes(p));
-  if (allPresent) return constraints;
+/**
+ * Replaces whatever CONSTRAINTS text Claude produced with the stack-aware,
+ * focus-mode-aware constraint block: universal constraints plus every
+ * constraint applicable to the detected stack, each with a checkId, an
+ * inline few-shot code example, and a verification command. Speed mode
+ * defers non-critical constraints to a "Phase 2: Harden" section; scale
+ * mode adds performance constraints.
+ */
+function ensureSecurityBaseline(
+  constraints: string,
+  stackKeys: StackKey[],
+  focusMode: FocusMode,
+  elevatedConstraints: string[] = [],
+): string {
+  const selection = getApplicableConstraints(stackKeys, focusMode);
+  const dynamicBlock = renderConstraintBlock(selection, focusMode);
 
-  const baseline = [
-    "- RLS enabled on every Supabase table; no table is publicly writable",
-    "- All secrets in server-side environment variables only; nothing secret in client bundles",
-    "- Server-side session validation on every protected route",
-    "- Input validated with Zod on every mutation before it touches the database",
-    "- Error boundary at app root; individual async boundaries around data-fetching subtrees",
-  ].join("\n");
+  let result = constraints ? `${constraints}\n\n${dynamicBlock}` : dynamicBlock;
 
-  return constraints ? `${constraints}\n\n${baseline}` : baseline;
+  if (elevatedConstraints.length > 0) {
+    result = `${result}\n\n${elevatedConstraints.join("\n")}`;
+  }
+
+  return result;
 }
 
-function parseStep(raw: string, name: string, index: number): CompiledStep {
+function parseStep(
+  raw: string,
+  name: string,
+  index: number,
+  stackKeys: StackKey[],
+  focusMode: FocusMode,
+  elevatedConstraints: string[] = [],
+): CompiledStep {
   return {
     name,
     index,
     stack: extractSection(raw, "STACK"),
     build: extractSection(raw, "BUILD"),
-    constraints: ensureSecurityBaseline(extractSection(raw, "CONSTRAINTS")),
+    constraints: ensureSecurityBaseline(
+      extractSection(raw, "CONSTRAINTS"),
+      stackKeys,
+      focusMode,
+      elevatedConstraints,
+    ),
     output: extractSection(raw, "OUTPUT"),
     raw,
   };
 }
 
-function parseSteps(raw: string): CompiledStep[] {
+function parseSteps(
+  raw: string,
+  stackKeys: StackKey[],
+  focusMode: FocusMode,
+  elevatedConstraints: string[] = [],
+): CompiledStep[] {
   const stepPattern = /###\s+Step\s+(\d+):\s+(.+)/gi;
   const matches = [...raw.matchAll(stepPattern)];
 
   if (matches.length === 0) {
-    return [parseStep(raw, "Build", 1)];
+    return [parseStep(raw, "Build", 1, stackKeys, focusMode, elevatedConstraints)];
   }
 
   return matches.map((match, i) => {
@@ -78,7 +106,14 @@ function parseSteps(raw: string): CompiledStep[] {
     const stepStart = match.index!;
     const stepEnd = nextMatch ? nextMatch.index! : raw.length;
     const stepRaw = raw.slice(stepStart, stepEnd).trim();
-    return parseStep(stepRaw, match[2]!.trim(), parseInt(match[1]!, 10));
+    return parseStep(
+      stepRaw,
+      match[2]!.trim(),
+      parseInt(match[1]!, 10),
+      stackKeys,
+      focusMode,
+      elevatedConstraints,
+    );
   });
 }
 
@@ -87,11 +122,16 @@ export async function compile(
   identifier: string,
   rateLimiter: RateLimiter,
   client: Anthropic = new Anthropic(),
+  elevatedConstraints: string[] = [],
+  detectedStack?: StackKey[],
+  focusMode: FocusMode = "security",
 ): Promise<CompileResult | CompileError> {
   const rateLimit = await rateLimiter.check(identifier);
   if (!rateLimit.allowed) {
     return { kind: "rate_limited", resetAt: rateLimit.resetAt };
   }
+
+  const stackKeys = detectedStack ?? detectStack(rawPrompt);
 
   let raw: string;
   try {
@@ -111,11 +151,13 @@ export async function compile(
     return { kind: "api_error", message };
   }
 
-  const steps = parseSteps(raw);
+  const steps = parseSteps(raw, stackKeys, focusMode, elevatedConstraints);
   return {
     raw,
     steps,
     isSingleStep: steps.length === 1,
     rateLimit,
+    detectedStack: stackKeys,
+    focusMode,
   };
 }

@@ -2,9 +2,19 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join, extname, basename, relative } from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { createRequire } from "node:module";
 import type { CodeProfile, FileInfo, GitCommit, Framework } from "./types";
 
 const execAsync = promisify(exec);
+
+function stripJsonComments(text: string): string {
+  // Remove line comments (// ...) and block comments (/* ... */) while
+  // preserving strings that contain // or /* (e.g. URLs like https://).
+  return text.replace(
+    /"(?:[^"\\]|\\.)*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+    (match) => match.startsWith('"') ? match : "",
+  );
+}
 
 const SKIP_DIRS = new Set([
   "node_modules", ".next", ".nuxt", ".svelte-kit",
@@ -165,13 +175,42 @@ export async function buildCodeProfile(root: string): Promise<CodeProfile> {
     ...((packageJson?.devDependencies as Record<string, string>) ?? {}),
   };
 
-  // tsconfig
+  // tsconfig — resolve extends chain to merge compilerOptions
   let tsConfig: Record<string, unknown> | null = null;
   const tsFile = files.find(f => f.path === "tsconfig.json" || f.path === "tsconfig.base.json");
   if (tsFile?.content) {
     try {
-      const stripped = tsFile.content.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      const stripped = stripJsonComments(tsFile.content);
       tsConfig = JSON.parse(stripped);
+
+      // Resolve extends chain (one level deep) to inherit compilerOptions
+      const extendsValue = (tsConfig as Record<string, unknown>)["extends"];
+      if (typeof extendsValue === "string") {
+        let basePath: string;
+        if (extendsValue.startsWith(".")) {
+          basePath = join(root, extendsValue);
+        } else {
+          // Package reference (e.g. "@shiprank/tsconfig/base.json") — resolve via node_modules
+          try {
+            const req = createRequire(join(root, "package.json"));
+            basePath = req.resolve(extendsValue);
+          } catch {
+            basePath = "";
+          }
+        }
+        if (basePath) {
+          const baseText = await readFile(basePath, "utf8").catch(() => "");
+          if (baseText) {
+            try {
+              const baseStripped = stripJsonComments(baseText);
+              const baseConfig = JSON.parse(baseStripped) as Record<string, unknown>;
+              const baseCo = (baseConfig.compilerOptions ?? {}) as Record<string, unknown>;
+              const localCo = (tsConfig!.compilerOptions ?? {}) as Record<string, unknown>;
+              (tsConfig as Record<string, unknown>).compilerOptions = { ...baseCo, ...localCo };
+            } catch { /* ignore base parse errors */ }
+          }
+        }
+      }
     } catch { /* ignore */ }
   }
 

@@ -12,6 +12,11 @@ export type StationName =
   | "compliance"
   | "infra";
 
+export type ProvenanceTier = "seed" | "self-reported" | "verified";
+export type CheckVisibility = "public" | "heldout";
+export type SubscriptionPlan = "free" | "pro" | "monitor";
+export type SubscriptionStatus = "active" | "canceled" | "expired";
+
 export interface Project {
   id: string;
   name: string;
@@ -20,6 +25,7 @@ export interface Project {
   framework: string | null;
   platform: string | null;
   owner_id: string | null;
+  is_public: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -36,6 +42,9 @@ export interface Scan {
   issue_count: number;
   duration_ms: number | null;
   scan_mode: string;
+  content_hash: string | null;
+  attestation_signature: string | null;
+  provenance: ProvenanceTier;
   metadata: Record<string, unknown>;
   started_at: string | null;
   completed_at: string | null;
@@ -71,6 +80,7 @@ export interface CheckResult {
   snippet: string | null;
   fix_suggestion: string | null;
   docs_url: string | null;
+  visibility: CheckVisibility;
   metadata: Record<string, unknown>;
   created_at: string;
 }
@@ -113,6 +123,10 @@ export interface LeaderboardEntry {
   grade: Grade;
   url: string | null;
   station_scores: Record<StationName, number>;
+  provenance: ProvenanceTier;
+  content_hash: string | null;
+  file_count: number;
+  line_count: number;
   scanned_at: string;
   created_at: string;
 }
@@ -123,6 +137,28 @@ export interface AgentsMdOutput {
   content: string;
   rule_count: number;
   metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_email: string;
+  stripe_customer_id: string | null;
+  plan: SubscriptionPlan;
+  api_key: string | null;
+  status: SubscriptionStatus;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface MonitoredProject {
+  id: string;
+  subscription_id: string;
+  project_id: string | null;
+  repo_url: string;
+  scan_frequency: string;
+  last_scanned_at: string | null;
+  next_scan_at: string;
   created_at: string;
 }
 

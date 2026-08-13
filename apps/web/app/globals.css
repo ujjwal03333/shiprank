@@ -3,4 +3,211 @@
 
 body {
   @apply bg-canvas text-ink font-body antialiased;
+  background-image:
+    radial-gradient(
+      1100px 520px at 50% -8%,
+      rgb(196 98 45 / 0.08),
+      transparent 62%
+    ),
+    radial-gradient(
+      820px 420px at 88% 4%,
+      rgb(61 110 140 / 0.05),
+      transparent 58%
+    );
+  background-repeat: no-repeat;
+  text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background-image:
+      radial-gradient(
+        1100px 520px at 50% -8%,
+        rgb(212 119 74 / 0.06),
+        transparent 62%
+      ),
+      radial-gradient(
+        820px 420px at 88% 4%,
+        rgb(90 148 184 / 0.04),
+        transparent 58%
+      );
+  }
+}
+
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(
+      1100px 520px at 50% -8%,
+      rgb(212 119 74 / 0.06),
+      transparent 62%
+    ),
+    radial-gradient(
+      820px 420px at 88% 4%,
+      rgb(90 148 184 / 0.04),
+      transparent 58%
+    );
+}
+
+/* Brand-tinted selection */
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 24%, transparent);
+}
+
+/* Single consistent focus treatment */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────── */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.reveal-1 {
+  animation-delay: 0.06s;
+}
+.reveal-2 {
+  animation-delay: 0.14s;
+}
+.reveal-3 {
+  animation-delay: 0.22s;
+}
+.reveal-4 {
+  animation-delay: 0.3s;
+}
+
+@keyframes chip-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.chip-pop {
+  animation: chip-pop 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    var(--color-surface-raised) 40%,
+    var(--color-surface) 50%,
+    var(--color-surface-raised) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+@keyframes thinking {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.thinking-dot {
+  animation: thinking 1.2s ease-in-out infinite;
+}
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Score bars render at full width immediately — width transitions handle
+   any dynamic updates without an entrance animation that can stall. */
+.grow-bar {
+  transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-1,
+  .reveal-2,
+  .reveal-3,
+  .reveal-4,
+  .skeleton,
+  .pulse-dot,
+  .thinking-dot,
+  .chip-pop,
+  .grow-bar {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Card + interactive surface language ─────────────────────────────── */
+
+.card-hover {
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-strong);
+}
+
+.press {
+  transition: transform 0.12s ease;
+}
+.press:active {
+  transform: scale(0.97);
 }

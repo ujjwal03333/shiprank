@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Methodology",
   description:
     "How ShipRank scores AI-built software — 9 stations, grade boundaries, check descriptions, and accuracy metrics.",
+  alternates: { canonical: "/methodology" },
 };
+
+async function getScanCount(): Promise<number | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const db = getServiceClient();
+    const { count } = await db
+      .from("leaderboard_entries")
+      .select("scan_id", { count: "exact", head: true });
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
 
 const STATIONS = [
   {
@@ -101,7 +116,8 @@ const GRADE_BOUNDARIES = [
   { grade: "F", min: 0, color: "#b23b3b", label: "Failing" },
 ];
 
-export default function MethodologyPage() {
+export default async function MethodologyPage() {
+  const scanCount = await getScanCount();
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 flex flex-col gap-16">
       {/* Header */}
@@ -111,10 +127,11 @@ export default function MethodologyPage() {
         </span>
         <h1 className="font-display text-3xl text-ink mt-2">Methodology</h1>
         <p className="font-body text-base text-ink-muted mt-3 max-w-2xl leading-relaxed">
-          ShipRank scans AI-built projects across 9 quality stations. Each
-          station runs a set of automated checks against your source code and
-          project structure. Scores are combined into a single ShipScore
-          (0–100).
+          ShipRank runs deterministic static analysis across 9 quality
+          stations. No LLM in the loop — every check is a pattern match or
+          structural test against your source code, so the same project always
+          produces the same score. Station scores are weighted and combined
+          into a single ShipScore (0–100).
         </p>
       </div>
 
@@ -156,8 +173,9 @@ export default function MethodologyPage() {
           </table>
         </div>
         <p className="font-body text-xs text-ink-subtle">
-          Boundaries are derived from the distribution of real scans — they may
-          shift as the dataset grows.
+          {scanCount != null
+            ? `Boundaries are derived from the distribution of real scans (n=${scanCount.toLocaleString()} so far) — they may shift as the dataset grows. With a sample this ${scanCount < 50 ? "small, treat them as provisional" : "size, they're reasonably stable"}.`
+            : "Boundaries are derived from the distribution of real scans — they may shift as the dataset grows."}
         </p>
       </section>
 
@@ -182,21 +200,31 @@ export default function MethodologyPage() {
               <p className="font-body text-sm text-ink-muted leading-relaxed">
                 {station.description}
               </p>
-              <div className="flex flex-col gap-1.5">
-                {station.checks.map((check) => (
-                  <div key={check} className="flex items-start gap-2">
-                    <span
-                      className="font-mono text-xs mt-0.5 shrink-0"
-                      style={{ color: station.color }}
-                    >
-                      ✓
-                    </span>
-                    <span className="font-mono text-xs text-ink-muted">
-                      {check}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-2 font-mono text-xs text-ink-subtle marker:content-none">
+                  <span className="transition-transform group-open:rotate-90">▸</span>
+                  {station.checks.length} checks in this station
+                </summary>
+                <div className="mt-3 flex flex-col gap-2">
+                  {station.checks.map((check) => {
+                    const [checkId, ...rest] = check.split(" · ");
+                    const checkDesc = rest.join(" · ");
+                    return (
+                      <div key={check} className="flex items-start gap-2.5">
+                        <span
+                          className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium"
+                          style={{ backgroundColor: `${station.color}15`, color: station.color }}
+                        >
+                          {checkId}
+                        </span>
+                        <span className="font-body text-sm text-ink-muted">
+                          {checkDesc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
             </div>
           ))}
         </div>
@@ -228,7 +256,7 @@ export default function MethodologyPage() {
         <h2 className="font-display text-xl text-ink">Remediation Ranking</h2>
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
           <p className="font-body text-sm text-ink-muted leading-relaxed">
-            The "Fix these 3" recommendations are sorted by ROI: score gain per
+            The &ldquo;Fix these 3&rdquo; recommendations are sorted by ROI: score gain per
             minute of implementation effort. A failing SEO check that takes 5
             minutes to fix ranks above a failing security check that takes 2
             hours — even if the security check is labeled critical. The critical

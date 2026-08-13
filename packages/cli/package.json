@@ -1,31 +1,53 @@
 {
   "name": "shiprank",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Rank your AI-built app against production standards",
+  "type": "module",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "shiprank": "./dist/bin.js"
+    "shiprank": "dist/bin.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shiprank/compile": "workspace:*",
-    "@shiprank/database": "workspace:*",
-    "@shiprank/engine": "workspace:*"
+    "@anthropic-ai/sdk": "^0.52.0"
   },
   "devDependencies": {
+    "@shiprank/compile": "workspace:*",
+    "@shiprank/database": "workspace:*",
+    "@shiprank/engine": "workspace:*",
     "@shiprank/tsconfig": "workspace:*",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2",
     "vitest": "^3.1.4"
   },
   "files": [
     "dist"
   ],
+  "keywords": [
+    "ai",
+    "vibe-coding",
+    "quality",
+    "scanner",
+    "linter",
+    "security",
+    "accessibility",
+    "leaderboard"
+  ],
+  "author": "ujjwal03333",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ujjwal03333/shiprank.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://shiprank-web-cqm7.vercel.app",
   "engines": {
     "node": ">=20"
   },

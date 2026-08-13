@@ -14,6 +14,15 @@ export type AutoFixSafety = "safe" | "review" | "human-only";
 export type FixDifficulty = "copy-paste" | "moderate" | "architectural";
 export type Framework = "nextjs" | "vite-react" | "vue" | "svelte" | "html" | "unknown";
 
+/**
+ * 'public'  — scored, shown on the report + /methodology page.
+ * 'heldout' — runs on every scan and its result is stored, but it is excluded
+ *             from scoring and from the public methodology. Held-out checks let
+ *             us measure public-score vs heldout-score divergence per platform
+ *             without teaching AI tools to game them. Omitted ⇒ 'public'.
+ */
+export type CheckVisibility = "public" | "heldout";
+
 export interface CheckResult {
   id: string;
   station: Station;
@@ -29,6 +38,8 @@ export interface CheckResult {
   fixTime: string;
   autoFixSafety: AutoFixSafety;
   scoreWeight: number;
+  /** Defaults to 'public' when omitted. Held-out checks never affect scoring. */
+  visibility?: CheckVisibility;
 }
 
 export interface FileInfo {

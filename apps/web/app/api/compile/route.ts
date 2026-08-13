@@ -5,11 +5,17 @@ import { checkRateLimit, ipFromRequest, rateLimitHeaders } from "@/lib/rate-limi
 
 const CompileSchema = z.object({
   prompt: z.string().min(10).max(2000),
+  focusMode: z.enum(["security", "speed", "scale"]).default("security"),
 });
 
 // In-memory compile rate limiter (5/day per identifier).
 // Production: createUpstashRateLimiter() when UPSTASH env vars are set.
 const compileLimiter = createMemoryRateLimiter(5, 24 * 60 * 60 * 1000);
+
+export async function HEAD() {
+  const hasKey = !!process.env["ANTHROPIC_API_KEY"];
+  return new Response(null, { status: hasKey ? 200 : 503 });
+}
 
 export async function POST(request: Request) {
   const ip = ipFromRequest(request);
@@ -38,7 +44,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await compile(parsed.data.prompt, ip, compileLimiter);
+  const result = await compile(
+    parsed.data.prompt,
+    ip,
+    compileLimiter,
+    undefined,
+    [],
+    undefined,
+    parsed.data.focusMode,
+  );
 
   if ("kind" in result) {
     if (result.kind === "rate_limited") {
@@ -65,5 +79,7 @@ export async function POST(request: Request) {
       output: s.output,
     })),
     rateLimit: result.rateLimit,
+    detectedStack: result.detectedStack,
+    focusMode: result.focusMode,
   });
 }

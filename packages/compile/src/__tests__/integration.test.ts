@@ -3,7 +3,7 @@ import { compile } from "../compiler";
 import { createMemoryRateLimiter } from "../rate-limiter";
 
 const BOOKING_PROMPT =
-  "ok so i want a booking app where people pick a time slot and pay a deposit and also get an email after";
+  "ok so i want a booking app with supabase where people pick a time slot and pay a deposit with stripe and also get an email after";
 
 describe("compile() integration", () => {
   it.skipIf(!process.env["ANTHROPIC_API_KEY"])(
@@ -28,15 +28,16 @@ describe("compile() integration", () => {
       });
 
       expect(r.steps.length).toBeGreaterThanOrEqual(1);
+      expect(r.detectedStack).toEqual(expect.arrayContaining(["supabase", "stripe"]));
 
-      // Every step must have the full security baseline
+      // Every step must have the stack-aware security baseline: universal
+      // constraints plus everything applicable to the detected stack.
       for (const step of r.steps) {
         const c = step.constraints.toLowerCase();
-        expect(c).toContain("rls enabled");
-        expect(c).toContain("server-side environment");
-        expect(c).toContain("server-side session");
+        expect(c).toContain("rls");
+        expect(c).toContain("webhook signature");
         expect(c).toContain("zod");
-        expect(c).toContain("error boundary");
+        expect(c).toContain("error boundar");
       }
 
       expect(r.rateLimit.allowed).toBe(true);

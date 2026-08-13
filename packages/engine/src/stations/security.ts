@@ -712,8 +712,11 @@ async function checkSEC012(root: string, ctx: ProjectContext): Promise<CheckResu
     const text = await readText(path);
     if (!text) continue;
     try {
-      // Strip comments before parsing
-      const stripped = text.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      // Strip JSONC comments while preserving strings (e.g. URLs containing //)
+      const stripped = text.replace(
+        /"(?:[^"\\]|\\.)*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+        (match) => match.startsWith('"') ? match : "",
+      );
       const tsconfig = JSON.parse(stripped) as Record<string, unknown>;
       const co = (tsconfig.compilerOptions ?? {}) as Record<string, unknown>;
       if (co.strict === true) {

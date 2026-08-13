@@ -3,11 +3,13 @@ import {
   buildCodeProfile,
   runChecks,
   overallScore,
+  runHeldoutChecks,
   buildFingerprint,
   buildRemediationPlan,
   generateAgentsMd,
+  computeContentHash,
 } from "@shiprank/engine";
-import type { StationScore, CodeProfile } from "@shiprank/engine";
+import type { StationScore, CodeProfile, CheckResult } from "@shiprank/engine";
 import type { Fingerprint, RemediationPlan } from "@shiprank/engine";
 import { scoreToGrade as gradeFromScore } from "@shiprank/database";
 
@@ -16,6 +18,7 @@ export interface ScanResult {
   checkSuiteVersion: string;
   projectName: string;
   root: string;
+  contentHash: string;
   fileCount: number;
   lineCount: number;
   depCount: number;
@@ -24,6 +27,7 @@ export interface ScanResult {
   framework: string;
   fingerprint: Fingerprint;
   stations: StationScore[];
+  heldout: CheckResult[];
   remediation: RemediationPlan;
   profile: CodeProfile;
 }
@@ -33,6 +37,7 @@ export async function scanProject(dir: string): Promise<ScanResult> {
 
   const profile = await buildCodeProfile(root);
   const stations = runChecks(profile);
+  const heldout = runHeldoutChecks(profile);
   const score = overallScore(stations);
   const grade = gradeFromScore(score);
   const fingerprint = buildFingerprint(profile);
@@ -44,12 +49,16 @@ export async function scanProject(dir: string): Promise<ScanResult> {
 
   const lineCount = profile.files.reduce((s, f) => s + f.lines, 0);
   const depCount = Object.keys(profile.dependencies).length;
+  const contentHash = computeContentHash(
+    profile.files.map((f) => ({ path: f.path, content: f.content })),
+  );
 
   return {
     version: "1.0.0",
     checkSuiteVersion: "1.0.0",
     projectName,
     root,
+    contentHash,
     fileCount: profile.files.length,
     lineCount,
     depCount,
@@ -58,6 +67,7 @@ export async function scanProject(dir: string): Promise<ScanResult> {
     framework: profile.framework,
     fingerprint,
     stations,
+    heldout,
     remediation,
     profile,
   };

@@ -6,6 +6,12 @@ import { ingestUpload } from "@/lib/scan-ingester";
 
 const UploadSchema = z.object({
   projectName: z.string().min(1).max(200),
+  // 64-char sha-256 hex. Optional for backward compat with older CLIs.
+  contentHash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+  checkVersion: z.string().max(32).optional(),
   score: z.number().int().min(0).max(100),
   grade: z.string(),
   framework: z.string(),
@@ -16,6 +22,19 @@ const UploadSchema = z.object({
   model: z.string().nullable(),
   aiRatio: z.number().min(0).max(1).nullable(),
   stationScores: z.record(z.string(), z.number().min(0).max(100)),
+  checkResults: z
+    .array(
+      z.object({
+        checkId: z.string().max(32),
+        station: z.string().max(32),
+        title: z.string().max(200),
+        severity: z.string().max(16),
+        passed: z.boolean(),
+        visibility: z.enum(["public", "heldout"]),
+      }),
+    )
+    .max(500)
+    .optional(),
 });
 
 export async function POST(request: Request) {

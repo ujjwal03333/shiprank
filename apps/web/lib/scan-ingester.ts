@@ -1,9 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { scoreToGrade } from "@shiprank/database";
+import {
+  signAttestation,
+  attestationSecretConfigured,
+  normalizeTimestamp,
+} from "./attestation";
+import { classifyProvenance, meetsSybilFloor } from "./provenance";
 
 // Mirrors uploader.ts in @shiprank/cli — validated by Zod in /api/scan/route.ts
 export interface UploadPayload {
   projectName: string;
+  contentHash?: string | undefined;
+  checkVersion?: string | undefined;
   score: number;
   grade: string;
   framework: string;
@@ -14,7 +22,24 @@ export interface UploadPayload {
   model: string | null;
   aiRatio: number | null;
   stationScores: Record<string, number>;
+  checkResults?: CheckResultPayload[] | undefined;
 }
+
+export interface CheckResultPayload {
+  checkId: string;
+  station: string;
+  title: string;
+  severity: string;
+  passed: boolean;
+  visibility: "public" | "heldout";
+}
+
+// Engine severity → DB severity enum ('critical'|'high'|'medium'|'low'|'info')
+const SEVERITY_MAP: Record<string, string> = {
+  critical: "critical",
+  warning: "medium",
+  info: "info",
+};
 
 // Engine Station → DB station_name enum
 const STATION_MAP: Record<string, string> = {
@@ -90,6 +115,7 @@ export async function ingestUpload(
 
   // ── 3. Create scan record (status: running) ───────────────────────────────
   const stationCount = Object.keys(payload.stationScores).length;
+  const checkVersion = payload.checkVersion ?? "1.0.0";
   const { data: scan, error: scanErr } = await db
     .from("scans")
     .insert({
@@ -98,17 +124,27 @@ export async function ingestUpload(
       station_count: stationCount,
       scan_mode: "cli-upload",
       started_at: startedAt,
-      metadata: { source: "cli-upload", version: "1.0.0" },
+      content_hash: payload.contentHash ?? null,
+      provenance: classifyProvenance("cli-upload"),
+      metadata: {
+        source: "cli-upload",
+        version: "1.0.0",
+        checkVersion,
+        fileCount: payload.fileCount,
+        lineCount: payload.lineCount,
+        aggregateEligible: meetsSybilFloor(payload),
+      },
     })
-    .select("id")
+    .select("id, created_at")
     .single();
 
   if (scanErr || !scan) {
     throw new Error(`Failed to create scan: ${scanErr?.message}`);
   }
   const scanId = scan.id as string;
+  const createdAt = scan.created_at as string;
 
-  // ── 4. Insert station results ─────────────────────────────────────────────
+  // ── 4. Insert station results (capture ids to link check results) ──────────
   const stationRows = Object.entries(payload.stationScores).map(([station, score]) => ({
     scan_id: scanId,
     station: toDbStation(station),
@@ -116,9 +152,43 @@ export async function ingestUpload(
     grade: toDbGrade(score),
   }));
 
+  const stationResultIdByDbStation = new Map<string, string>();
   if (stationRows.length > 0) {
-    const { error: stErr } = await db.from("station_results").insert(stationRows);
+    const { data: inserted, error: stErr } = await db
+      .from("station_results")
+      .insert(stationRows)
+      .select("id, station");
     if (stErr) throw new Error(`Failed to insert station results: ${stErr.message}`);
+    for (const r of inserted ?? []) {
+      stationResultIdByDbStation.set(r.station as string, r.id as string);
+    }
+  }
+
+  // ── 4b. Insert individual check results (public + held-out) ────────────────
+  // Stored with a visibility flag so held-out vs public divergence analysis
+  // (Part 7 genome) is a plain SQL query, not a code change.
+  if (payload.checkResults && payload.checkResults.length > 0) {
+    const checkRows = payload.checkResults
+      .map((c) => {
+        const stationResultId = stationResultIdByDbStation.get(
+          toDbStation(c.station),
+        );
+        if (!stationResultId) return null;
+        return {
+          station_result_id: stationResultId,
+          check_id: c.checkId,
+          title: c.title,
+          severity: SEVERITY_MAP[c.severity] ?? "info",
+          passed: c.passed,
+          visibility: c.visibility,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (checkRows.length > 0) {
+      const { error: crErr } = await db.from("check_results").insert(checkRows);
+      if (crErr) throw new Error(`Failed to insert check results: ${crErr.message}`);
+    }
   }
 
   // ── 5. Insert fingerprint ─────────────────────────────────────────────────
@@ -133,7 +203,19 @@ export async function ingestUpload(
     });
   }
 
-  // ── 6. Complete scan → triggers leaderboard upsert ───────────────────────
+  // ── 6. Compute the attestation signature (server-side, secret never leaves) ─
+  let attestationSignature: string | null = null;
+  if (payload.contentHash && attestationSecretConfigured()) {
+    attestationSignature = signAttestation({
+      scanId,
+      contentHash: payload.contentHash,
+      overall: payload.score,
+      checkVersion,
+      createdAtIso: normalizeTimestamp(createdAt),
+    });
+  }
+
+  // ── 7. Complete scan → triggers leaderboard upsert ───────────────────────
   const completedAt = new Date().toISOString();
   const { error: completeErr } = await db
     .from("scans")
@@ -142,6 +224,7 @@ export async function ingestUpload(
       score: payload.score,
       grade: toDbGrade(payload.score),
       completed_at: completedAt,
+      attestation_signature: attestationSignature,
     })
     .eq("id", scanId);
 

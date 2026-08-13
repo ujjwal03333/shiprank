@@ -38,11 +38,7 @@ Supabase
 2. Enable RLS
 
 ## CONSTRAINTS
-- RLS enabled on every Supabase table; no table is publicly writable
-- All secrets in server-side environment variables only; nothing secret in client bundles
-- Server-side session validation on every protected route
-- Input validated with Zod on every mutation before it touches the database
-- Error boundary at app root; individual async boundaries around data-fetching subtrees
+- RLS enabled on every Supabase table
 
 ## OUTPUT
 - Migration runs without errors
@@ -56,11 +52,7 @@ Next.js App Router
 2. Wire Supabase auth
 
 ## CONSTRAINTS
-- RLS enabled on every Supabase table; no table is publicly writable
-- All secrets in server-side environment variables only; nothing secret in client bundles
-- Server-side session validation on every protected route
-- Input validated with Zod on every mutation before it touches the database
-- Error boundary at app root; individual async boundaries around data-fetching subtrees
+- Server-side session validation
 
 ## OUTPUT
 - User can sign up and see /dashboard`;
@@ -101,29 +93,87 @@ describe("compile()", () => {
     expect(r.steps[1]!.index).toBe(2);
   });
 
-  it("injects security baseline when constraints are missing required rules", async () => {
-    // SINGLE_STEP_RESPONSE only has Zod, missing the other 4 rules
+  it("auto-detects stack from the prompt and injects only applicable constraints", async () => {
     const client = makeClient(SINGLE_STEP_RESPONSE);
-    const result = await compile("build a dashboard", "user-3", rateLimiter, client);
+    const result = await compile(
+      "build a dashboard with supabase and stripe",
+      "user-3",
+      rateLimiter,
+      client,
+    );
 
     const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.detectedStack).toEqual(expect.arrayContaining(["supabase", "stripe"]));
     const c = r.steps[0]!.constraints.toLowerCase();
-    expect(c).toContain("rls enabled");
-    expect(c).toContain("server-side environment");
-    expect(c).toContain("server-side session");
-    expect(c).toContain("zod");
-    expect(c).toContain("error boundary");
+    expect(c).toContain("rls");
+    expect(c).toContain("webhook signature");
+    // no auth keyword in the prompt — auth-specific constraints should not appear
+    expect(c).not.toContain("rate limit login");
   });
 
-  it("does not duplicate baseline when all rules are already present", async () => {
-    // MULTI_STEP_RESPONSE step 1 has all 5 rules
-    const client = makeClient(MULTI_STEP_RESPONSE);
-    const result = await compile("build an app", "user-4", rateLimiter, client);
+  it("with no stack keywords, injects only the 3 universal constraints", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const result = await compile("build a dashboard", "user-4", rateLimiter, client);
+
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.detectedStack).toEqual([]);
+    const c = r.steps[0]!.constraints;
+    expect(c).toContain("SEC-001");
+    expect(c).toContain("SEC-010");
+    expect(c).toContain("REL-001");
+    expect(c).not.toContain("SEC-003"); // no RLS constraint without supabase
+  });
+
+  it("includes an inline code example and verify command for every injected constraint", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const result = await compile(
+      "build a booking app with supabase",
+      "user-5",
+      rateLimiter,
+      client,
+      [],
+      undefined,
+      "security",
+    );
 
     const r = result as Exclude<typeof result, { kind: string }>;
     const c = r.steps[0]!.constraints;
-    const rlsCount = (c.toLowerCase().match(/rls enabled/g) ?? []).length;
-    expect(rlsCount).toBe(1);
+    expect(c).toContain("```");
+    expect(c).toContain("Verify:");
+    expect(c).toContain("[SEC-003]");
+  });
+
+  it("security-first injects more constraints than speed-to-mvp for the same stack", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const stack: import("../stack").StackKey[] = ["supabase", "stripe", "auth"];
+
+    const security = await compile("saas with supabase auth and stripe", "user-6a", rateLimiter, client, [], stack, "security");
+    const speed = await compile("saas with supabase auth and stripe", "user-6b", rateLimiter, client, [], stack, "speed");
+
+    const securityConstraints = (security as Exclude<typeof security, { kind: string }>).steps[0]!.constraints;
+    const speedConstraints = (speed as Exclude<typeof speed, { kind: string }>).steps[0]!.constraints;
+
+    // Count only constraints injected NOW (primary section) — speed mode
+    // defers non-critical ones to "Phase 2: Harden" rather than dropping
+    // them, so the *immediate* constraint count should differ even though
+    // the total (primary + deferred) is the same.
+    const countPrimaryBullets = (s: string) =>
+      (s.split("### Phase 2: Harden")[0]!.match(/^- /gm) ?? []).length;
+    expect(countPrimaryBullets(securityConstraints)).toBeGreaterThan(countPrimaryBullets(speedConstraints));
+    expect(speedConstraints).toContain("Phase 2: Harden");
+    expect(securityConstraints).not.toContain("Phase 2: Harden");
+    expect(securityConstraints).toContain("do not proceed until verified");
+  });
+
+  it("scale-ready adds performance constraints not present in security or speed mode", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const stack: import("../stack").StackKey[] = ["supabase"];
+
+    const scale = await compile("saas with supabase", "user-7", rateLimiter, client, [], stack, "scale");
+    const c = (scale as Exclude<typeof scale, { kind: string }>).steps[0]!.constraints;
+    expect(c).toContain("PERF-001");
+    expect(c).toContain("PERF-002");
+    expect(c).toContain("PERF-003");
   });
 
   it("returns rate_limited when the limiter is exhausted", async () => {
@@ -131,9 +181,9 @@ describe("compile()", () => {
     const client = makeClient(SINGLE_STEP_RESPONSE);
 
     // Exhaust the 1-request window
-    await compile("first", "user-5", tightLimiter, client);
+    await compile("first", "user-8", tightLimiter, client);
 
-    const result = await compile("second", "user-5", tightLimiter, client);
+    const result = await compile("second", "user-8", tightLimiter, client);
     expect(result).toHaveProperty("kind", "rate_limited");
     // API should not have been called a second time
     expect(client.messages.stream).toHaveBeenCalledTimes(1);

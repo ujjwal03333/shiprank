@@ -6,8 +6,36 @@ import { uploadResult } from "./uploader.js";
 import { compile, createMemoryRateLimiter } from "@shiprank/compile";
 import { hostname } from "node:os";
 
+const HELP = `
+ShipRank — rank your AI-built app against production standards
+
+Usage:
+  npx shiprank [dir]              Scan a project (defaults to current dir)
+  npx shiprank compile "<prompt>" Optimize a build prompt with Claude
+
+Options:
+  --json                          Output full report as JSON
+  --ci --threshold <n>            Exit 1 if score < n (default 60)
+  --upload                        Upload results to shiprank.dev leaderboard
+  --rules                         Print an AGENTS.md / .cursorrules file
+  -h, --help                      Show this help message
+
+Examples:
+  npx shiprank ./my-app
+  npx shiprank ./my-app --upload
+  npx shiprank ./my-app --ci --threshold 70
+  npx shiprank ./my-app --json | less
+  npx shiprank ./my-app --rules > .cursorrules
+  npx shiprank compile "build a SaaS with Stripe and Supabase"
+`.trim();
+
 async function main(): Promise<number> {
   const args = parseArgs(process.argv);
+
+  if (args.help) {
+    process.stdout.write(HELP + "\n");
+    return 0;
+  }
 
   if (args.command === "compile") {
     if (!args.compilePrompt) {

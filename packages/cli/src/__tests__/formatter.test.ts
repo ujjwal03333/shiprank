@@ -9,6 +9,7 @@ function makeScanResult(score: number, overrides: Partial<ScanResult> = {}): Sca
     checkSuiteVersion: "1.0.0",
     projectName: "test-app",
     root: "/tmp/test-app",
+    contentHash: "0000000000000000000000000000000000000000000000000000000000000000",
     fileCount: 42,
     lineCount: 8500,
     depCount: 18,
@@ -78,6 +79,7 @@ function makeScanResult(score: number, overrides: Partial<ScanResult> = {}): Sca
         ],
       },
     ],
+    heldout: [],
     remediation: {
       currentScore: score,
       projectedScore: Math.min(100, score + 21),

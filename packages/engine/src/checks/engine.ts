@@ -8,6 +8,7 @@ import { architectureChecks } from "./architecture";
 import { dataChecks } from "./data";
 import { complianceChecks } from "./compliance";
 import { infrastructureChecks } from "./infrastructure";
+import { heldoutChecks } from "./heldout";
 
 const STATION_NAMES: Record<Station, string> = {
   security: "Security",
@@ -65,7 +66,12 @@ function scoreStation(checks: CheckResult[], profile: CodeProfile): number {
 }
 
 export function runChecks(profile: CodeProfile): StationScore[] {
-  const results = ALL_CHECKS.map(fn => fn(profile));
+  // ALL_CHECKS are public. Held-out checks live in a separate registry and are
+  // never included here, so they can never influence a station or overall score.
+  const results = ALL_CHECKS.map(fn => ({
+    ...fn(profile),
+    visibility: "public" as const,
+  }));
 
   const byStation = new Map<Station, CheckResult[]>();
   for (const result of results) {
@@ -91,6 +97,18 @@ export function runChecks(profile: CodeProfile): StationScore[] {
       total: checks.length,
     };
   });
+}
+
+/**
+ * Runs the held-out checks. Their results are meant to be stored (with
+ * visibility 'heldout') for divergence analysis, NOT scored or displayed.
+ * Kept entirely separate from runChecks so scoring can never see them.
+ */
+export function runHeldoutChecks(profile: CodeProfile): CheckResult[] {
+  return heldoutChecks.map(fn => ({
+    ...fn(profile),
+    visibility: "heldout" as const,
+  }));
 }
 
 export function overallScore(stationScores: StationScore[]): number {

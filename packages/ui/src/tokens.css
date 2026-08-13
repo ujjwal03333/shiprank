@@ -19,7 +19,7 @@
   /* Ink (text) */
   --color-ink: #2b2419;
   --color-ink-muted: #6e6558;
-  --color-ink-subtle: #8f8676;
+  --color-ink-subtle: #746a58;
   --color-ink-onbrand: #fefbf6;
 
   /* Brand — terracotta */
@@ -44,17 +44,6 @@
   --color-info: #3d6e8c;
   --color-info-soft: #dfeaf0;
   --color-info-ink: #22415a;
-
-  /* Station accent colors — one per scan station */
-  --color-station-security: #b23b3b;
-  --color-station-accessibility: #6a4c93;
-  --color-station-performance: #c08a1e;
-  --color-station-growth: #3f7d52;
-  --color-station-code-quality: #3d6e8c;
-  --color-station-architecture: #8b5e34;
-  --color-station-data: #4c7a8c;
-  --color-station-compliance: #7a4c6a;
-  --color-station-infra: #5c6b73;
 
   /* Typography — apps override --font-display-family/--font-body-family
      via next/font; these are the fallback stacks. */
@@ -94,4 +83,186 @@
     0 2px 8px rgb(43 36 25 / 0.08), 0 1px 2px rgb(43 36 25 / 0.06);
   --shadow-lg:
     0 8px 24px rgb(43 36 25 / 0.1), 0 2px 6px rgb(43 36 25 / 0.06);
+  --shadow-xl:
+    0 24px 60px rgb(43 36 25 / 0.12), 0 8px 20px rgb(43 36 25 / 0.07),
+    0 1px 2px rgb(43 36 25 / 0.05);
+  --shadow-brand:
+    0 8px 24px rgb(196 98 45 / 0.28), 0 2px 6px rgb(196 98 45 / 0.18);
+}
+
+/* Station accent colors — one per scan station.
+   `static` so they are always emitted: components reference these via
+   inline style var(--color-station-*), which Tailwind's tree-shaking
+   cannot see. */
+@theme static {
+  --color-station-security: #b23b3b;
+  --color-station-accessibility: #6a4c93;
+  --color-station-performance: #c08a1e;
+  --color-station-growth: #3f7d52;
+  --color-station-code-quality: #3d6e8c;
+  --color-station-architecture: #8b5e34;
+  --color-station-data: #4c7a8c;
+  --color-station-compliance: #7a4c6a;
+  --color-station-infra: #5c6b73;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────── */
+/* Base: OS preference. Override: data-theme on :root wins both ways. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #1a1714;
+    --color-surface: #221f1a;
+    --color-surface-raised: #2e2a23;
+    --color-surface-sunken: #141210;
+
+    --color-border: #3a342b;
+    --color-border-strong: #524a3e;
+
+    --color-ink: #e8e0d4;
+    --color-ink-muted: #a39888;
+    --color-ink-subtle: #a29889;
+    --color-ink-onbrand: #fefbf6;
+
+    --color-brand: #d4774a;
+    --color-brand-hover: #e08a5c;
+    --color-brand-soft: #3a2518;
+    --color-brand-ink: #e8a47a;
+
+    --color-success: #5aad6e;
+    --color-success-soft: #1e3024;
+    --color-success-ink: #7dcc8e;
+
+    --color-warning: #d4a030;
+    --color-warning-soft: #332810;
+    --color-warning-ink: #e8ba54;
+
+    --color-danger: #d45858;
+    --color-danger-soft: #351818;
+    --color-danger-ink: #e87a7a;
+
+    --color-info: #5a94b8;
+    --color-info-soft: #162430;
+    --color-info-ink: #7ab4d4;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.2);
+    --shadow-md: 0 2px 8px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+    --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.2);
+    --shadow-xl: 0 24px 60px rgb(0 0 0 / 0.35), 0 8px 20px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+    --shadow-brand: 0 8px 24px rgb(212 119 74 / 0.2), 0 2px 6px rgb(212 119 74 / 0.12);
+
+    --color-station-security: #e06060;
+    --color-station-accessibility: #9070c0;
+    --color-station-performance: #e0aa38;
+    --color-station-growth: #60b074;
+    --color-station-code-quality: #60a0c8;
+    --color-station-architecture: #c08050;
+    --color-station-data: #70a8c0;
+    --color-station-compliance: #b070a0;
+    --color-station-infra: #8898a0;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-canvas: #1a1714;
+  --color-surface: #221f1a;
+  --color-surface-raised: #2e2a23;
+  --color-surface-sunken: #141210;
+
+  --color-border: #3a342b;
+  --color-border-strong: #524a3e;
+
+  --color-ink: #e8e0d4;
+  --color-ink-muted: #a39888;
+  --color-ink-subtle: #a29889;
+  --color-ink-onbrand: #fefbf6;
+
+  --color-brand: #d4774a;
+  --color-brand-hover: #e08a5c;
+  --color-brand-soft: #3a2518;
+  --color-brand-ink: #e8a47a;
+
+  --color-success: #5aad6e;
+  --color-success-soft: #1e3024;
+  --color-success-ink: #7dcc8e;
+
+  --color-warning: #d4a030;
+  --color-warning-soft: #332810;
+  --color-warning-ink: #e8ba54;
+
+  --color-danger: #d45858;
+  --color-danger-soft: #351818;
+  --color-danger-ink: #e87a7a;
+
+  --color-info: #5a94b8;
+  --color-info-soft: #162430;
+  --color-info-ink: #7ab4d4;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.2);
+  --shadow-xl: 0 24px 60px rgb(0 0 0 / 0.35), 0 8px 20px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-brand: 0 8px 24px rgb(212 119 74 / 0.2), 0 2px 6px rgb(212 119 74 / 0.12);
+
+  --color-station-security: #e06060;
+  --color-station-accessibility: #9070c0;
+  --color-station-performance: #e0aa38;
+  --color-station-growth: #60b074;
+  --color-station-code-quality: #60a0c8;
+  --color-station-architecture: #c08050;
+  --color-station-data: #70a8c0;
+  --color-station-compliance: #b070a0;
+  --color-station-infra: #8898a0;
+}
+
+:root[data-theme="light"] {
+  --color-canvas: #fbf7f1;
+  --color-surface: #fefdfb;
+  --color-surface-raised: #f4eee3;
+  --color-surface-sunken: #ece4d6;
+
+  --color-border: #e4dacb;
+  --color-border-strong: #c9bba4;
+
+  --color-ink: #2b2419;
+  --color-ink-muted: #6e6558;
+  --color-ink-subtle: #746a58;
+  --color-ink-onbrand: #fefbf6;
+
+  --color-brand: #c4622d;
+  --color-brand-hover: #a84f21;
+  --color-brand-soft: #f3e0d2;
+  --color-brand-ink: #7a3315;
+
+  --color-success: #3f7d52;
+  --color-success-soft: #e3eee3;
+  --color-success-ink: #234a2f;
+
+  --color-warning: #c08a1e;
+  --color-warning-soft: #f5ebd3;
+  --color-warning-ink: #6b4c11;
+
+  --color-danger: #b23b3b;
+  --color-danger-soft: #f5dedd;
+  --color-danger-ink: #6b2222;
+
+  --color-info: #3d6e8c;
+  --color-info-soft: #dfeaf0;
+  --color-info-ink: #22415a;
+
+  --shadow-sm: 0 1px 2px rgb(43 36 25 / 0.06);
+  --shadow-md: 0 2px 8px rgb(43 36 25 / 0.08), 0 1px 2px rgb(43 36 25 / 0.06);
+  --shadow-lg: 0 8px 24px rgb(43 36 25 / 0.1), 0 2px 6px rgb(43 36 25 / 0.06);
+  --shadow-xl: 0 24px 60px rgb(43 36 25 / 0.12), 0 8px 20px rgb(43 36 25 / 0.07), 0 1px 2px rgb(43 36 25 / 0.05);
+  --shadow-brand: 0 8px 24px rgb(196 98 45 / 0.28), 0 2px 6px rgb(196 98 45 / 0.18);
+
+  --color-station-security: #b23b3b;
+  --color-station-accessibility: #6a4c93;
+  --color-station-performance: #c08a1e;
+  --color-station-growth: #3f7d52;
+  --color-station-code-quality: #3d6e8c;
+  --color-station-architecture: #8b5e34;
+  --color-station-data: #4c7a8c;
+  --color-station-compliance: #7a4c6a;
+  --color-station-infra: #5c6b73;
 }

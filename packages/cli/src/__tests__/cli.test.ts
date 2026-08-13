@@ -52,6 +52,22 @@ describe("parseArgs()", () => {
     expect(r.command).toBe("compile");
     expect(r.compilePrompt).toBe("build a booking app");
   });
+
+  it("sets help=true for --help", () => {
+    const r = parse(["--help"]);
+    expect(r.help).toBe(true);
+  });
+
+  it("sets help=true for -h", () => {
+    const r = parse(["-h"]);
+    expect(r.help).toBe(true);
+  });
+
+  it("help flag does not set json or ci", () => {
+    const r = parse(["--help"]);
+    expect(r.json).toBe(false);
+    expect(r.ci).toBe(false);
+  });
 });
 
 // ── --ci exit code logic ──────────────────────────────────────────────────────
@@ -78,6 +94,7 @@ function makeMinimalResult(score: number): ScanResult {
     checkSuiteVersion: "1.0.0",
     projectName: "payload-test",
     root: "/tmp/payload-test",
+    contentHash: "0000000000000000000000000000000000000000000000000000000000000000",
     fileCount: 10,
     lineCount: 500,
     depCount: 5,
@@ -92,6 +109,7 @@ function makeMinimalResult(score: number): ScanResult {
     stations: [
       { station: "security", name: "Security", score: 80, implemented: 3, total: 5, checks: [] },
     ],
+    heldout: [],
     remediation: { currentScore: score, projectedScore: score + 5, top3: [], all: [] },
     profile: {
       root: "/tmp/payload-test",
