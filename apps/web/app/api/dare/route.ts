@@ -1,5 +1,8 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 import { z } from "zod";
 import { checkRateLimit, ipFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 import {

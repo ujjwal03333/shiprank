@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { processDareJob } from "@/lib/dare-worker";
 import { getDareJob } from "@/lib/dare-store";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ jobId: string }> },

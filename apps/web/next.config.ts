@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const securityHeaders = [
   {
@@ -37,6 +38,24 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, "../.."),
+  outputFileTracingExcludes: {
+    "*": [
+      "**/.git/**",
+      "**/.turbo/**",
+      "**/coverage/**",
+      "**/src/__tests__/**",
+      "**/*.md",
+    ],
+  },
+  transpilePackages: [
+    "@shiprank/engine",
+    "@shiprank/compile",
+    "@shiprank/database",
+    "@shiprank/ui",
+    "shiprank",
+  ],
+  serverExternalPackages: ["@anthropic-ai/sdk"],
   headers: async () => [
     {
       source: "/(.*)",

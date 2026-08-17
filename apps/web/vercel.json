@@ -1,7 +1,16 @@
 {
+  "framework": "nextjs",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@shiprank/web",
-  "outputDirectory": ".next",
   "installCommand": "cd ../.. && pnpm install",
+  "outputDirectory": ".next",
+  "functions": {
+    "app/api/dare/**/*.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/**/*.ts": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/rescan",
