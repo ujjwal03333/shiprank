@@ -1,8 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { x as tarExtract } from "tar";
 import {
   buildCodeProfile,
   runChecks,
@@ -22,8 +21,6 @@ import {
   fetchGithubRepoMeta,
   parseGithubRepoUrl,
 } from "./github-repo";
-
-const execFileAsync = promisify(execFile);
 
 export type DareJobStatus = "queued" | "cloning" | "scanning" | "complete" | "failed";
 
@@ -73,8 +70,11 @@ async function downloadAndExtract(
   const extractDir = join(dest, "src");
   await writeFile(archive, buf);
   await mkdir(extractDir, { recursive: true });
-  await execFileAsync("tar", ["-xzf", archive, "-C", extractDir, "--strip-components=1"], {
-    timeout: 30_000,
+  // Pure JS extract — Vercel serverless has no `tar` binary (spawn ENOENT).
+  await tarExtract({
+    file: archive,
+    cwd: extractDir,
+    strip: 1,
   });
 }
 

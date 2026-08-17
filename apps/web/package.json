@@ -11,7 +11,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "shiprank": "workspace:*",
     "@shiprank/compile": "workspace:*",
     "@shiprank/database": "workspace:*",
     "@shiprank/engine": "workspace:*",
@@ -24,7 +23,9 @@
     "react-dom": "19.2.4",
     "recharts": "^2.15.0",
     "resend": "^4.0.1",
+    "shiprank": "workspace:*",
     "stripe": "^17.5.0",
+    "tar": "^7.5.22",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/tar": "^7.0.87",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
