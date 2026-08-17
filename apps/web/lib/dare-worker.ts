@@ -207,49 +207,59 @@ export async function processDareJob(jobId: string): Promise<void> {
       });
     }
 
-    let scanId: string | null = null;
-    if (isSupabaseConfigured()) {
-      try {
-        const ingested = await ingestUpload(
-          getServiceClient(),
-          {
-            projectName,
-            contentHash,
-            checkVersion: "1.0.0",
-            score,
-            grade,
-            framework: profile.framework,
-            fileCount: profile.files.length,
-            lineCount,
-            depCount,
-            platform: fingerprint.platform.platform,
-            model: fingerprint.model.model,
-            aiRatio: fingerprint.aiRatio?.aiRatio ?? null,
-            stationScores,
-            checkResults,
-          },
-          { forceNew: true, source: "dare" },
-        );
-        scanId = ingested.scanId;
-      } catch {
-        // Local / invalid service-role: still finish the dare with a live score.
-      }
-    }
+    const progress = {
+      fileCount: profile.files.length,
+      framework: profile.framework,
+      findingCount,
+      projectName,
+      score,
+      grade,
+    };
 
+    // Finish the job first so a hung ingest cannot leave the UI on
+    // "Computing score..." after Vercel kills the function at 60s.
     await updateDareJob(jobId, {
       status: "complete",
       progress_stage: "Done",
-      scan_id: scanId,
+      scan_id: null,
       completed_at: new Date().toISOString(),
-      progress: {
-        fileCount: profile.files.length,
-        framework: profile.framework,
-        findingCount,
-        projectName,
-        score,
-        grade,
-      },
+      progress,
     });
+
+    let scanId: string | null = null;
+    if (isSupabaseConfigured()) {
+      try {
+        const ingested = await Promise.race([
+          ingestUpload(
+            getServiceClient(),
+            {
+              projectName,
+              contentHash,
+              checkVersion: "1.0.0",
+              score,
+              grade,
+              framework: profile.framework,
+              fileCount: profile.files.length,
+              lineCount,
+              depCount,
+              platform: fingerprint.platform.platform,
+              model: fingerprint.model.model,
+              aiRatio: fingerprint.aiRatio?.aiRatio ?? null,
+              stationScores,
+              checkResults,
+            },
+            { forceNew: true, source: "dare" },
+          ),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("Leaderboard ingest timed out")), 12_000);
+          }),
+        ]);
+        scanId = ingested.scanId;
+        await updateDareJob(jobId, { scan_id: scanId, progress });
+      } catch {
+        // Score is already public on the job. Leaderboard write is best-effort.
+      }
+    }
   } catch (err) {
     const message =
       err instanceof Error
