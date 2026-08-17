@@ -46,8 +46,8 @@ describe("overallScore", () => {
   });
 });
 
-describe("runChecks stub stations", () => {
-  it("does not treat ARCH/DATA/COMP/INFRA as 100 on an empty profile", () => {
+describe("runChecks Phase 6 stations", () => {
+  it("implements at least 3 checks each on COMP/INFRA/DATA/ARCH", () => {
     const profile = {
       root: "/p",
       files: [],
@@ -71,11 +71,37 @@ describe("runChecks stub stations", () => {
     const stations = runChecks(profile);
     for (const id of ["architecture", "data", "compliance", "infrastructure"] as const) {
       const s = stations.find((x) => x.station === id)!;
-      expect(s.implemented).toBe(0);
-      expect(s.score).toBe(0);
+      expect(s.implemented).toBeGreaterThanOrEqual(3);
     }
-    const scored = stations.filter((s) => s.implemented > 0);
-    expect(scored.length).toBeGreaterThan(0);
-    expect(scored.every((s) => s.station !== "architecture")).toBe(true);
+  });
+
+  it("does not give COMP or INFRA a free 100 on an empty profile", () => {
+    const profile = {
+      root: "/p",
+      files: [],
+      packageJson: null,
+      dependencies: {},
+      tsConfig: null,
+      supabaseMigrations: [],
+      apiRoutes: [],
+      components: [],
+      testFiles: [],
+      configFiles: {},
+      envExample: null,
+      gitCommits: null,
+      framework: "unknown",
+      hasAuth: false,
+      hasDatabase: false,
+      hasPayments: false,
+      hasUserData: false,
+    } as CodeProfile;
+
+    const stations = runChecks(profile);
+    const compliance = stations.find((x) => x.station === "compliance")!;
+    const infra = stations.find((x) => x.station === "infrastructure")!;
+    expect(compliance.score).toBeLessThan(100);
+    expect(infra.score).toBeLessThan(100);
+    expect(compliance.checks.some((c) => c.confidence > 0 && !c.passed)).toBe(true);
+    expect(infra.checks.some((c) => c.confidence > 0 && !c.passed)).toBe(true);
   });
 });

@@ -85,24 +85,71 @@ const STATIONS = [
     name: "Code Quality",
     color: "#3d6e8c",
     description:
-      "Analyzes TypeScript coverage, test presence, ESLint configuration, dead code ratio, and component complexity. A proxy for long-term maintainability.",
+      "Analyzes TypeScript coverage, test presence, unused exports, console usage, and error-handling patterns. A proxy for long-term maintainability.",
     checks: [
-      "QA-001 · TypeScript strict mode",
-      "QA-002 · Test files present (Vitest / Jest / Playwright)",
-      "QA-003 · ESLint configured",
-      "QA-004 · No console.log in production paths",
+      "QUAL-001 · Test coverage present",
+      "QUAL-002 · TypeScript strict mode enabled",
+      "QUAL-003 · No excessive any type usage",
+      "QUAL-005 · No console.log in production code",
+      "QUAL-008 · No silent error swallowing",
+      "QUAL-009 · Consistent async error handling",
+    ],
+  },
+  {
+    id: "architecture",
+    name: "Architecture",
+    color: "#4a5568",
+    description:
+      "Looks for client components that talk to the database, god files, a service layer around Stripe/Supabase, env-file separation, and a shared UI kit. Remaining ARCH IDs are stubs (confidence 0) and do not score.",
+    checks: [
+      "ARCH-001 · Business logic not in client components",
+      "ARCH-002 · No god components (>500 lines)",
+      "ARCH-004 · Service layer present",
+      "ARCH-006 · Environment separation",
+      "ARCH-008 · Shared UI component library",
+    ],
+  },
+  {
+    id: "data",
+    name: "Data Integrity",
+    color: "#2c6e49",
+    description:
+      "Static reads of committed SQL / Prisma schema and query loops. Foreign-key indexes and NOT NULL remain stubs until we can parse them honestly.",
+    checks: [
+      "DATA-003 · No float for monetary values",
+      "DATA-004 · Migrations committed to repo",
+      "DATA-006 · No N+1 query patterns",
+      "DATA-007 · created_at / updated_at timestamps",
+      "DATA-008 · Unique constraints on unique fields",
+    ],
+  },
+  {
+    id: "compliance",
+    name: "Compliance",
+    color: "#7a4e2d",
+    description:
+      "Detects privacy and terms routes, cookie consent when tracking exists, account-deletion handlers, and PII in log statements. Not legal advice — a static scan.",
+    checks: [
+      "COMP-001 · Privacy policy present",
+      "COMP-002 · Terms of service present",
+      "COMP-003 · Cookie consent when tracking exists",
+      "COMP-004 · Account deletion endpoint",
+      "COMP-005 · No PII logged",
     ],
   },
   {
     id: "infra",
-    name: "Infra",
+    name: "Infrastructure",
     color: "#5c6b73",
     description:
-      "Checks deployment configuration, environment variable management, CI/CD presence, and error monitoring setup.",
+      "CI workflows, error tracking, analytics, a health route, hardcoded localhost URLs, and automated dependency updates. Preview-deploy and env-matrix checks are still stubs.",
     checks: [
-      "INFRA-001 · Deployment config present (vercel.json, fly.toml, etc.)",
-      "INFRA-002 · Environment variables documented (.env.example)",
-      "INFRA-003 · Error monitoring integrated (Sentry, etc.)",
+      "INFRA-001 · CI pipeline configured",
+      "INFRA-002 · Error tracking configured",
+      "INFRA-003 · Analytics configured",
+      "INFRA-004 · Health check endpoint present",
+      "INFRA-005 · No hardcoded localhost URLs",
+      "INFRA-008 · Dependency updates automated",
     ],
   },
 ];

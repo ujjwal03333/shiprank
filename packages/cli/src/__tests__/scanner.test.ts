@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { scanProject } from "../scanner.js";
+import { scoreToGrade } from "@shiprank/database";
 
 const FIXTURE_ROOT = join(tmpdir(), "shiprank-cli-test");
 
@@ -59,7 +60,7 @@ describe("scanProject()", () => {
     expect(result.projectName).toBe("cli-test-app");
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeLessThanOrEqual(100);
-    expect(["A", "B", "C", "D", "F"]).toContain(result.grade);
+    expect(["A+", "A", "B", "C", "D", "F"]).toContain(result.grade);
     expect(result.framework).toBe("nextjs");
     expect(result.stations.length).toBeGreaterThan(0);
     expect(result.fileCount).toBeGreaterThan(0);
@@ -71,11 +72,7 @@ describe("scanProject()", () => {
     const result = await scanProject(root);
     const { score, grade } = result;
 
-    if (score >= 90) expect(grade).toBe("A");
-    else if (score >= 75) expect(grade).toBe("B");
-    else if (score >= 60) expect(grade).toBe("C");
-    else if (score >= 45) expect(grade).toBe("D");
-    else expect(grade).toBe("F");
+    expect(grade).toBe(scoreToGrade(score));
   });
 
   it("fingerprint detects platform", async () => {
