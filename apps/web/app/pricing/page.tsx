@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CheckoutForm } from "../components/checkout-form";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -84,39 +85,6 @@ const FAQ: Array<{ q: string; a: string }> = [
     a: "Monitor re-scans on a schedule automatically and emails you when your score regresses, so you find out from us before a user does.",
   },
 ];
-
-function CheckoutForm({
-  plan,
-  cta,
-  highlighted,
-}: {
-  plan: "pro" | "monitor";
-  cta: string;
-  highlighted?: boolean | undefined;
-}) {
-  return (
-    <form action="/api/checkout" method="POST" className="flex flex-col gap-2">
-      <input type="hidden" name="plan" value={plan} />
-      <input
-        type="email"
-        name="email"
-        required
-        placeholder="you@example.com"
-        className="rounded-md border border-border bg-surface px-3 py-2 font-body text-sm text-ink placeholder:text-ink-subtle"
-      />
-      <button
-        type="submit"
-        className={`press rounded-md px-4 py-2.5 font-body text-sm transition-colors ${
-          highlighted
-            ? "bg-brand text-ink-onbrand hover:bg-brand-hover"
-            : "bg-ink text-canvas hover:bg-brand-hover"
-        }`}
-      >
-        {cta} →
-      </button>
-    </form>
-  );
-}
 
 export default function PricingPage() {
   return (

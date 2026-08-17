@@ -20,6 +20,10 @@ import { resolvePlanForApiKey, SESSION_COOKIE } from "@/lib/subscription";
 import { cookies } from "next/headers";
 import { MonitorToggle } from "@/app/components/monitor-toggle";
 import { formatPlatformName, formatModelName, timeAgo } from "@/lib/format-names";
+import { fetchCheckPrevalence, type CheckPrevalence } from "@/lib/check-prevalence";
+import { decisionContextFor } from "@/lib/decision-context";
+import { evaluateLieDetector } from "@/lib/lie-detector";
+import { scoreNarrative } from "@/lib/score-narrative";
 
 const APP_URL = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank.dev";
 
@@ -216,8 +220,18 @@ const SEVERITY_TONE: Record<string, string> = {
   info: "bg-surface-sunken text-ink-muted",
 };
 
-function FindingCard({ finding }: { finding: GatedFinding }) {
+function FindingCard({
+  finding,
+  prevalence,
+  plan,
+}: {
+  finding: GatedFinding;
+  prevalence?: CheckPrevalence | undefined;
+  plan: "free" | "pro" | "monitor";
+}) {
   const tone = SEVERITY_TONE[finding.severity] ?? "bg-surface-sunken text-ink-muted";
+  const decision = decisionContextFor(finding.checkId, prevalence);
+  const locked = plan === "free";
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
@@ -226,6 +240,51 @@ function FindingCard({ finding }: { finding: GatedFinding }) {
           {finding.severity}
         </span>
       </div>
+      {prevalence && (
+        <span className="font-mono text-xs text-ink-subtle">
+          Fails in {prevalence.failPct}% of scanned projects (n={prevalence.sampleSize})
+        </span>
+      )}
+      <details className="group">
+        <summary className="cursor-pointer list-none font-mono text-xs text-brand marker:content-none">
+          {locked ? "Why did this happen?  Lock — Unlock with Pro →" : "Why did this happen?"}
+        </summary>
+        {locked ? (
+          <p className="mt-2 font-body text-xs text-ink-muted">
+            Decision records are a Pro feature.{" "}
+            <Link href="/pricing" className="text-brand hover:underline">
+              Unlock with Pro →
+            </Link>
+          </p>
+        ) : (
+          <dl className="mt-2 flex flex-col gap-2 font-body text-xs leading-relaxed text-ink-muted">
+            <div>
+              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Pattern</dt>
+              <dd>{decision.aiPattern}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Probable cause</dt>
+              <dd>{decision.probableCause}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Should be</dt>
+              <dd>{decision.whatShouldBe}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Impact</dt>
+              <dd>{decision.impactChain}</dd>
+            </div>
+            {decision.frequencyPct != null && decision.sampleSize != null && (
+              <div>
+                <dt className="font-mono text-[10px] uppercase text-ink-subtle">Frequency</dt>
+                <dd>
+                  Fails in {decision.frequencyPct}% of eligible scans (n={decision.sampleSize}).
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </details>
       {finding.upgradeRequired ? (
         <div className="relative overflow-hidden rounded-md border border-border bg-surface-sunken px-3 py-3">
           <p aria-hidden className="select-none font-mono text-xs text-ink-subtle blur-[3px]">
@@ -263,7 +322,15 @@ function FindingCard({ finding }: { finding: GatedFinding }) {
   );
 }
 
-function FindingsSection({ findings }: { findings: GatedFinding[] }) {
+function FindingsSection({
+  findings,
+  prevalenceMap,
+  plan,
+}: {
+  findings: GatedFinding[];
+  prevalenceMap: Map<string, CheckPrevalence>;
+  plan: "free" | "pro" | "monitor";
+}) {
   if (findings.length === 0) return null;
   return (
     <div className="rounded-lg border border-border bg-surface p-5 shadow-sm flex flex-col gap-4">
@@ -272,9 +339,47 @@ function FindingsSection({ findings }: { findings: GatedFinding[] }) {
       </h2>
       <div className="flex flex-col gap-3">
         {findings.map((f) => (
-          <FindingCard key={f.id} finding={f} />
+          <FindingCard
+            key={f.id}
+            finding={f}
+            prevalence={prevalenceMap.get(f.checkId)}
+            plan={plan}
+          />
         ))}
       </div>
+    </div>
+  );
+}
+
+function LieDetectorCard({
+  failingIds,
+  ranIds,
+}: {
+  failingIds: string[];
+  ranIds: string[];
+}) {
+  const result = evaluateLieDetector(failingIds, ranIds);
+  if (result.total === 0) return null;
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-mono text-xs uppercase tracking-widest text-ink-subtle">
+          Lie detector
+        </h2>
+        <span className="font-mono text-xs text-ink-muted">
+          Your AI&apos;s confidence score: {result.verifiedCount}/{result.total} claims verified
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {result.claims.map((c) => (
+          <li key={c.claim} className="flex items-start justify-between gap-3">
+            <span className="font-body text-sm text-ink">{c.claim}</span>
+            <span className={`font-mono text-xs ${c.verified ? "text-success-ink" : "text-danger-ink"}`}>
+              {c.verified ? "✓" : "✗"}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -296,14 +401,24 @@ function VelocityPill({ label, direction }: { label: string; direction: "up" | "
 function ShareCard({ scanId }: { scanId: string }) {
   const url = `https://shiprank.dev/scan/${scanId}`;
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-brand-soft bg-brand-soft/30 p-5">
+    <div className="flex flex-col gap-4 rounded-lg border border-brand-soft bg-brand-soft/30 p-5">
       <h2 className="font-mono text-xs uppercase tracking-widest text-brand">
         Share this scan
       </h2>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/scan/${scanId}/opengraph-image`}
+        alt="Social sharing preview card"
+        width={1200}
+        height={630}
+        loading="lazy"
+        className="w-full rounded-lg border border-border shadow-sm"
+      />
       <div className="flex gap-2">
         <input
           readOnly
           value={url}
+          aria-label="Scan URL"
           className="flex-1 rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-ink-muted"
         />
         <CopyButton text={url} label="scan URL" />
@@ -414,6 +529,11 @@ export default async function ScanPage({
   const criticalCount = failingFindings.filter((f) => f.severity === "critical").length;
   const verdict = verdictFor(typedScan.score, criticalCount, failingFindings.length);
 
+  const prevalenceMap = await fetchCheckPrevalence(
+    db,
+    failingFindings.map((f) => f.checkId),
+  );
+
   // Real sitewide average per station, computed from actual leaderboard
   // data — never fabricated. Skipped entirely if there's nothing to average.
   const currentStationScores: Record<string, number> = {};
@@ -491,6 +611,9 @@ export default async function ScanPage({
           <span className="font-mono text-xs text-ink-subtle text-center max-w-[160px]">
             ShipScore
           </span>
+          <p className="max-w-[200px] text-center font-body text-xs leading-relaxed text-ink-muted">
+            {scoreNarrative(typedScan.score)}
+          </p>
           <div className="text-center">
             <p className="font-display text-sm text-ink">{verdict.headline}</p>
             <p className="mt-0.5 max-w-[180px] font-body text-xs leading-relaxed text-ink-subtle">
@@ -560,8 +683,17 @@ export default async function ScanPage({
         </div>
       )}
 
+      <LieDetectorCard
+        failingIds={failingFindings.map((f) => f.checkId)}
+        ranIds={findings.map((f) => f.checkId)}
+      />
+
       {/* Findings — free tier sees title + severity, fix content blurred */}
-      <FindingsSection findings={failingFindings} />
+      <FindingsSection
+        findings={failingFindings}
+        prevalenceMap={prevalenceMap}
+        plan={resolvedPlan.plan}
+      />
 
       {/* Monitor tier: opt this project into scheduled re-scans */}
       {resolvedPlan.plan === "monitor" && project?.repo_url && (

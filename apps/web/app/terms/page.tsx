@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -29,20 +30,30 @@ export default function TermsPage() {
       <Section title="What this is">
         <p>
           ShipRank is a code-quality scanner: a CLI you run locally, and a
-          hosted service (leaderboard, scan reports, Compile) at
+          hosted service (leaderboard, scan reports, Compile, Dare) at
           shiprank.dev. By running the CLI with{" "}
           <code className="font-mono text-xs bg-surface-sunken px-1 rounded">--upload</code>{" "}
           or using the website, you agree to these terms.
         </p>
       </Section>
 
+      <Section title="Static analysis only">
+        <p>
+          ShipRank performs static analysis only. It reads source files,
+          configs, and git metadata. It never executes your application code,
+          never installs your dependencies to run them, and never starts your
+          servers. Dare Board clones are treated the same way: read, score,
+          delete.
+        </p>
+      </Section>
+
       <Section title="No warranty">
         <p>
-          ShipRank is provided &ldquo;as is,&rdquo; without warranty of any kind. A
-          passing score is not a certification that your software is secure,
-          performant, or fit for any particular purpose — it&apos;s a snapshot
-          against a fixed set of automated checks. Automated checks miss
-          things. Use your own judgment before shipping.
+          Scan results are provided &ldquo;as is.&rdquo; A passing score is not a
+          guarantee of security, performance, accessibility, or fitness for
+          any purpose — it is a snapshot against a fixed set of automated
+          checks. Automated checks miss things. Use your own judgment before
+          shipping.
         </p>
       </Section>
 
@@ -58,22 +69,29 @@ export default function TermsPage() {
       <Section title="Acceptable use">
         <p>You agree not to:</p>
         <ul className="list-disc pl-5 flex flex-col gap-1.5">
-          <li>Use the service to scan or upload code you don&apos;t have the right to analyze or share.</li>
+          <li>
+            Scan or upload a repository you do not own or have permission to
+            analyze. Public GitHub repos submitted via Dare Board are fair
+            game — that is the point of a public dare.
+          </li>
           <li>Attempt to circumvent rate limits, plan gating, or authentication.</li>
           <li>Upload fabricated scan results or otherwise attempt to manipulate the public leaderboard.</li>
           <li>Use the service to build a competing product by scraping or reverse-engineering the scoring methodology at scale.</li>
         </ul>
       </Section>
 
-      <Section title="Data handling">
+      <Section title="Uploaded scan data">
         <p>
-          See our{" "}
-          <a href="/privacy" className="text-brand-ink transition-colors hover:text-brand">
+          When you use{" "}
+          <code className="font-mono text-xs bg-surface-sunken px-1 rounded">--upload</code>{" "}
+          or Dare Board, we store scan metadata on Supabase (project name,
+          scores, check pass/fail, fingerprints). Retention is indefinite
+          unless you request deletion. We do not store your source code.
+          See the{" "}
+          <Link href="/privacy" className="text-brand-ink transition-colors hover:text-brand">
             Privacy Policy
-          </a>{" "}
-          for what is and isn&apos;t collected. In short: the CLI scans locally,
-          and only scan metadata — not source code — is uploaded when you
-          use <code className="font-mono text-xs bg-surface-sunken px-1 rounded">--upload</code>.
+          </Link>
+          .
         </p>
       </Section>
 

@@ -68,22 +68,31 @@ export interface IngestResult {
   isNew: boolean;
 }
 
+export interface IngestOptions {
+  forceNew?: boolean;
+  source?: string;
+}
+
 export async function ingestUpload(
   db: SupabaseClient,
   payload: UploadPayload,
+  options: IngestOptions = {},
 ): Promise<IngestResult> {
   const startedAt = new Date().toISOString();
+  const source = options.source ?? "cli-upload";
 
   // ── 1. Idempotency: check for a recent scan of this project ──────────────
-  const { data: recent } = await db
-    .from("leaderboard_entries")
-    .select("scan_id, project_id")
-    .eq("project_name", payload.projectName)
-    .gte("scanned_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .maybeSingle();
+  if (!options.forceNew) {
+    const { data: recent } = await db
+      .from("leaderboard_entries")
+      .select("scan_id, project_id")
+      .eq("project_name", payload.projectName)
+      .gte("scanned_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .maybeSingle();
 
-  if (recent) {
-    return { scanId: recent.scan_id as string, projectId: recent.project_id as string, isNew: false };
+    if (recent) {
+      return { scanId: recent.scan_id as string, projectId: recent.project_id as string, isNew: false };
+    }
   }
 
   // ── 2. Upsert project ─────────────────────────────────────────────────────
@@ -100,7 +109,7 @@ export async function ingestUpload(
           depCount: payload.depCount,
           model: payload.model,
           aiRatio: payload.aiRatio,
-          source: "cli-upload",
+          source,
         },
       },
       { onConflict: "name", ignoreDuplicates: false },
@@ -122,12 +131,12 @@ export async function ingestUpload(
       project_id: projectId,
       status: "running",
       station_count: stationCount,
-      scan_mode: "cli-upload",
+      scan_mode: source,
       started_at: startedAt,
       content_hash: payload.contentHash ?? null,
-      provenance: classifyProvenance("cli-upload"),
+      provenance: classifyProvenance(source),
       metadata: {
-        source: "cli-upload",
+        source,
         version: "1.0.0",
         checkVersion,
         fileCount: payload.fileCount,

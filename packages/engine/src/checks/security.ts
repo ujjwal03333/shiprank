@@ -63,6 +63,8 @@ function decodeJwtRole(token: string): string | null {
 
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const AUTH_ROUTE_PATTERNS = [/\/auth\//, /\/login/, /\/signup/, /\/register/, /\/api\/auth/];
+const FIX_TIME_15_MIN = "15 min";
+const FIX_TIME_30_MIN = "30 min";
 
 // ── SEC-001: Hardcoded secrets ────────────────────────────────────────────────
 // CRITICAL RULE: SUPABASE_ANON_KEY and NEXT_PUBLIC_SUPABASE_ANON_KEY are public
@@ -97,13 +99,18 @@ const checkSEC001: CheckFn = (profile) => {
     fixPrompt:
       "Move all secrets to environment variables. Never hardcode API keys, JWT secrets, or service role keys in source files. Rotate any exposed keys immediately via the provider dashboard.",
     fixDifficulty: "copy-paste" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 14,
   };
 
+  // Test fixtures for a security scanner legitimately contain realistic
+  // fake-secret-shaped strings to validate detection — that's categorically
+  // different from a leaked production secret, so exclude them here the
+  // same way other quality checks exclude test files from their scans.
+  const testPathSet = new Set(profile.testFiles);
   const sourceFiles = profile.files.filter(
-    f => SOURCE_EXTS.has(f.ext) && f.content,
+    f => SOURCE_EXTS.has(f.ext) && f.content && !testPathSet.has(f.path),
   );
 
   const hits: string[] = [];
@@ -184,7 +191,7 @@ const checkSEC003: CheckFn = (profile) => {
     fixPrompt:
       "For each table without RLS: ALTER TABLE <table> ENABLE ROW LEVEL SECURITY; Then add policies: CREATE POLICY select_own ON <table> FOR SELECT USING (auth.uid() = user_id);",
     fixDifficulty: "moderate" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 12,
   };
@@ -242,7 +249,7 @@ const checkSEC004: CheckFn = (profile) => {
     fixPrompt:
       "Add server-side auth checks to each API route: const { data: { user } } = await supabase.auth.getUser(); if (!user) return new Response('Unauthorized', { status: 401 });",
     fixDifficulty: "moderate" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 10,
   };
@@ -322,7 +329,7 @@ const checkSEC006: CheckFn = (profile) => {
     fixPrompt:
       'Replace Access-Control-Allow-Origin: * with an explicit allowlist: const ALLOWED = ["https://yourapp.com"]; if (ALLOWED.includes(origin)) headers.set("Access-Control-Allow-Origin", origin);',
     fixDifficulty: "moderate" as const,
-    fixTime: "15 min",
+    fixTime: FIX_TIME_15_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 7,
   };
@@ -350,7 +357,7 @@ const checkSEC007: CheckFn = (profile) => {
     fixPrompt:
       'Install @upstash/ratelimit and @upstash/redis. Wrap auth routes: const { success } = await ratelimit.limit(ip); if (!success) return new Response("Too Many Requests", { status: 429 });',
     fixDifficulty: "moderate" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 7,
   };
@@ -388,7 +395,7 @@ const checkSEC008: CheckFn = (profile) => {
     fixPrompt:
       "Replace string interpolation in SQL queries with parameterised queries: db.query('SELECT * FROM users WHERE id = $1', [userId]) — never interpolate user input directly.",
     fixDifficulty: "moderate" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 6,
   };
@@ -470,6 +477,26 @@ const GIT_SECRET_PATTERNS = [
   /-----BEGIN\s+(RSA\s+)?PRIVATE KEY-----/,
 ];
 
+function isTestDiffPath(path: string): boolean {
+  return path.includes("__tests__") || path.includes(".test.") || path.includes(".spec.");
+}
+
+// Same rationale as SEC-001: a security scanner's own test fixtures
+// legitimately contain realistic fake-secret-shaped strings, and those
+// diffs shouldn't read as leaked history. Diffs are unified format with a
+// "diff --git a/<path> b/<path>" header per file, so hunks can be filtered
+// by the path they belong to before pattern-matching.
+function stripTestFileHunks(diff: string): string {
+  const segments = diff.split(/(?=^diff --git )/m);
+  return segments
+    .filter(seg => {
+      const header = seg.match(/^diff --git a\/(.+?) b\/.+$/m);
+      if (!header) return true;
+      return !isTestDiffPath(header[1]!);
+    })
+    .join("");
+}
+
 const checkSEC011: CheckFn = (profile) => {
   const base = {
     id: "SEC-011",
@@ -491,8 +518,9 @@ const checkSEC011: CheckFn = (profile) => {
 
   const hits: string[] = [];
   for (const commit of profile.gitCommits) {
+    const relevantDiff = stripTestFileHunks(commit.diff);
     for (const re of GIT_SECRET_PATTERNS) {
-      if (re.test(commit.diff)) {
+      if (re.test(relevantDiff)) {
         hits.push(`${commit.hash.slice(0, 7)}: ${commit.message}`);
         break;
       }
@@ -521,7 +549,7 @@ const checkSEC012: CheckFn = (profile) => {
     fixPrompt:
       "Use stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET) before processing any webhook. Reject events where constructEvent throws.",
     fixDifficulty: "moderate" as const,
-    fixTime: "30 min",
+    fixTime: FIX_TIME_30_MIN,
     autoFixSafety: "review" as const,
     scoreWeight: 4,
   };
@@ -555,22 +583,22 @@ const checkSEC012: CheckFn = (profile) => {
 // ── Wave 2 stubs (18 checks — correct interface, confidence: 0) ───────────────
 const checkSEC013 = stub("SEC-013", 3, "warning", "No file upload validation", "File uploads lack type/size validation.", "Validate MIME type server-side and enforce size limits.", "moderate", "1 hr", "review");
 const checkSEC014 = stub("SEC-014", 3, "warning", "No SSRF patterns", "Server-side requests use user-supplied URLs without validation.", "Allowlist permitted URL patterns before making server-side HTTP requests.", "moderate", "1 hr", "review");
-const checkSEC015 = stub("SEC-015", 2, "warning", "CSRF protection present", "Mutation endpoints lack CSRF protection.", "Use SameSite=Lax cookies or a CSRF token for state-changing endpoints.", "moderate", "30 min", "review");
-const checkSEC016 = stub("SEC-016", 2, "warning", "No session fixation risk", "Session ID not regenerated after login.", "Regenerate session after auth state change.", "moderate", "30 min", "review");
-const checkSEC017 = stub("SEC-017", 2, "warning", "Admin routes protected", "Admin-only routes not restricted to admin role.", "Add role check: if (user.role !== 'admin') return 403.", "moderate", "30 min", "review");
-const checkSEC018 = stub("SEC-018", 2, "info", "No mixed content", "Page loads HTTP resources over HTTPS.", "Upgrade all sub-resources to HTTPS.", "copy-paste", "15 min", "safe");
-const checkSEC019 = stub("SEC-019", 2, "warning", "No dangerouslySetInnerHTML", "dangerouslySetInnerHTML used without DOMPurify sanitization.", "Wrap HTML string with DOMPurify.sanitize() before passing to dangerouslySetInnerHTML.", "moderate", "15 min", "review");
-const checkSEC020 = stub("SEC-020", 2, "warning", "No PII in logs", "User PII (email, name) logged via console.log.", "Remove PII from logs. Use structured logging with user IDs only.", "moderate", "30 min", "review");
-const checkSEC021 = stub("SEC-021", 1, "warning", "eval() not used", "eval() or new Function() found in source.", "Replace eval() with safer alternatives.", "moderate", "30 min", "review");
-const checkSEC022 = stub("SEC-022", 1, "warning", "No path traversal risk", "User input used in file path without sanitisation.", "Use path.resolve + verify the result stays within the allowed directory.", "moderate", "30 min", "review");
-const checkSEC023 = stub("SEC-023", 1, "info", "No open redirect", "Redirect destination from user input without validation.", "Validate redirect URLs against an allowlist.", "moderate", "15 min", "review");
+const checkSEC015 = stub("SEC-015", 2, "warning", "CSRF protection present", "Mutation endpoints lack CSRF protection.", "Use SameSite=Lax cookies or a CSRF token for state-changing endpoints.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC016 = stub("SEC-016", 2, "warning", "No session fixation risk", "Session ID not regenerated after login.", "Regenerate session after auth state change.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC017 = stub("SEC-017", 2, "warning", "Admin routes protected", "Admin-only routes not restricted to admin role.", "Add role check: if (user.role !== 'admin') return 403.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC018 = stub("SEC-018", 2, "info", "No mixed content", "Page loads HTTP resources over HTTPS.", "Upgrade all sub-resources to HTTPS.", "copy-paste", FIX_TIME_15_MIN, "safe");
+const checkSEC019 = stub("SEC-019", 2, "warning", "No dangerouslySetInnerHTML", "dangerouslySetInnerHTML used without DOMPurify sanitization.", "Wrap HTML string with DOMPurify.sanitize() before passing to dangerouslySetInnerHTML.", "moderate", FIX_TIME_15_MIN, "review");
+const checkSEC020 = stub("SEC-020", 2, "warning", "No PII in logs", "User PII (email, name) logged via console.log.", "Remove PII from logs. Use structured logging with user IDs only.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC021 = stub("SEC-021", 1, "warning", "eval() not used", "eval() or new Function() found in source.", "Replace eval() with safer alternatives.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC022 = stub("SEC-022", 1, "warning", "No path traversal risk", "User input used in file path without sanitisation.", "Use path.resolve + verify the result stays within the allowed directory.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC023 = stub("SEC-023", 1, "info", "No open redirect", "Redirect destination from user input without validation.", "Validate redirect URLs against an allowlist.", "moderate", FIX_TIME_15_MIN, "review");
 const checkSEC024 = stub("SEC-024", 1, "info", "Dependency lockfile committed", "No lockfile committed — non-deterministic installs.", "Commit pnpm-lock.yaml, package-lock.json, or yarn.lock.", "copy-paste", "5 min", "safe");
 const checkSEC025 = stub("SEC-025", 1, "info", "No debug endpoints in production", "Debug routes exposing internals reachable in production.", "Gate debug routes behind NODE_ENV !== 'production'.", "copy-paste", "5 min", "safe");
-const checkSEC026 = stub("SEC-026", 1, "info", "Error messages do not leak stack traces", "Unhandled errors returning stack traces to client.", "Return generic error messages; log details server-side only.", "moderate", "30 min", "review");
-const checkSEC027 = stub("SEC-027", 1, "info", "Third-party scripts use SRI", "External scripts loaded without Subresource Integrity.", "Add integrity= and crossorigin= attributes to external <script> tags.", "copy-paste", "15 min", "safe");
+const checkSEC026 = stub("SEC-026", 1, "info", "Error messages do not leak stack traces", "Unhandled errors returning stack traces to client.", "Return generic error messages; log details server-side only.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC027 = stub("SEC-027", 1, "info", "Third-party scripts use SRI", "External scripts loaded without Subresource Integrity.", "Add integrity= and crossorigin= attributes to external <script> tags.", "copy-paste", FIX_TIME_15_MIN, "safe");
 const checkSEC028 = stub("SEC-028", 1, "info", "Secure cookie flags set", "Auth cookies missing Secure and HttpOnly flags.", "Set cookies with Secure; HttpOnly; SameSite=Lax.", "copy-paste", "5 min", "safe");
-const checkSEC029 = stub("SEC-029", 1, "info", "No command injection", "User input passed to child_process.exec without sanitisation.", "Use execFile with an argument array, never exec with string interpolation.", "moderate", "30 min", "review");
-const checkSEC030 = stub("SEC-030", 1, "info", "Prototype pollution guard", "Object.assign or JSON.parse on untrusted input without guard.", "Use structuredClone or a library like defu instead of Object.assign on user data.", "moderate", "30 min", "review");
+const checkSEC029 = stub("SEC-029", 1, "info", "No command injection", "User input passed to child_process.exec without sanitisation.", "Use execFile with an argument array, never exec with string interpolation.", "moderate", FIX_TIME_30_MIN, "review");
+const checkSEC030 = stub("SEC-030", 1, "info", "Prototype pollution guard", "Object.assign or JSON.parse on untrusted input without guard.", "Use structuredClone or a library like defu instead of Object.assign on user data.", "moderate", FIX_TIME_30_MIN, "review");
 
 export const securityChecks: CheckFn[] = [
   checkSEC001, checkSEC002, checkSEC003, checkSEC004, checkSEC005, checkSEC006,

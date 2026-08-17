@@ -23,6 +23,12 @@ const SKIP_DIRS = new Set([
 
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue", ".svelte"]);
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg"]);
+// path.extname() returns "" for dotfiles with no further extension (e.g.
+// ".gitignore" → ""), so these need an explicit basename allowlist to be
+// read as text — otherwise their content silently comes back empty.
+const KNOWN_DOTFILES = new Set([
+  ".gitignore", ".npmrc", ".nvmrc", ".dockerignore", ".prettierrc", ".eslintignore",
+]);
 const CONFIG_NAMES = new Set([
   "vercel.json", "netlify.toml", "next.config.ts", "next.config.js",
   "next.config.mjs", "vite.config.ts", "vite.config.js", "nuxt.config.ts",
@@ -69,7 +75,8 @@ async function walkFiles(dir: string, root: string, maxDepth = 6, depth = 0): Pr
           ext === ".md" ||
           ext === ".html" ||
           ext === ".txt" ||
-          /^\.env/.test(entry.name);
+          /^\.env/.test(entry.name) ||
+          KNOWN_DOTFILES.has(entry.name);
 
         if (isText && size < 500_000) {
           const raw = await readFile(full, "utf8");
@@ -246,11 +253,15 @@ export async function buildCodeProfile(root: string): Promise<CodeProfile> {
     )
     .map(f => f.path);
 
-  // Config files (basename → content)
+  // Config files (basename → content). A monorepo can have more than one
+  // file with the same basename (e.g. a real app config plus a test
+  // fixture) — concatenate on collision instead of letting the last one
+  // silently overwrite an earlier, possibly more relevant, match.
   const configFiles: Record<string, string> = {};
   for (const f of files) {
-    if (CONFIG_NAMES.has(basename(f.path)) && f.content) {
-      configFiles[basename(f.path)] = f.content;
+    const name = basename(f.path);
+    if (CONFIG_NAMES.has(name) && f.content) {
+      configFiles[name] = configFiles[name] ? `${configFiles[name]}\n${f.content}` : f.content;
     }
   }
 

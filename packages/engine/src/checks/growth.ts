@@ -63,6 +63,34 @@ const checkSEO002: CheckFn = (profile) => {
     .map(f => f.content)
     .join("\n");
 
+  // Next.js Metadata API: an `openGraph: {...}` object inside an exported
+  // `metadata` / `generateMetadata`. title and description are satisfied
+  // either explicitly inside openGraph or inherited from the top-level
+  // metadata (Next.js auto-populates og:title/og:description when not
+  // overridden). The image can come from openGraph.images or from the
+  // opengraph-image.* file convention, which auto-generates the meta tag.
+  const hasMetadataExport = /export\s+(?:const\s+metadata\b|(?:async\s+)?function\s+generateMetadata\b)/.test(allContent);
+  const hasOpenGraphBlock = /openGraph\s*:\s*\{/.test(allContent);
+
+  if (hasMetadataExport && hasOpenGraphBlock) {
+    const hasTitle = /\btitle\s*:/.test(allContent);
+    const hasDescription = /\bdescription\s*:/.test(allContent);
+    const hasOpenGraphImages = /openGraph\s*:\s*\{[^}]*\bimages\s*:/.test(allContent);
+    const hasOgImageFileConvention = profile.files.some(f =>
+      /(^|\/)opengraph-image\.(tsx|ts|jsx|js|png|jpe?g|gif|webp)$/.test(f.path),
+    );
+
+    const missingParts: string[] = [];
+    if (!hasTitle) missingParts.push("title");
+    if (!hasDescription) missingParts.push("description");
+    if (!hasOpenGraphImages && !hasOgImageFileConvention) missingParts.push("image");
+
+    if (missingParts.length === 0) return pass(base);
+    return fail(base, `Open Graph metadata incomplete: ${missingParts.join(", ")}`, missingParts.join(", "));
+  }
+
+  // Fallback: literal <meta property="og:..."> tags (non-Next.js apps, or
+  // apps that hand-author head tags instead of using the Metadata API).
   const missing = OG_TAGS.filter(tag => !allContent.includes(tag));
   if (missing.length === 0) return pass(base);
   return fail(base, `Missing Open Graph tags: ${missing.join(", ")}`, missing.join(", "));

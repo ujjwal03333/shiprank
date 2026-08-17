@@ -1,5 +1,10 @@
 import type { Platform, PlatformDetection, ModelInference } from "./types";
 
+// Platform-detection confidence at or above this is treated as certain
+// enough to use the spec's model confidence as-is, rather than scaling it
+// down by the detection confidence.
+const HIGH_CONFIDENCE_THRESHOLD = 80;
+
 // Spec-defined model → confidence mapping.
 // Confidence reflects how certain we are about which model was used —
 // lower for platforms where users can freely switch models (e.g. Cursor).
@@ -48,12 +53,11 @@ export function inferModel(detection: PlatformDetection): ModelInference {
 
   const entry = MODEL_MAP[detection.platform];
 
-  // Scale model confidence by platform detection confidence.
-  // If we're 80% sure it's Lovable (80 conf) and Lovable is 80% likely Claude Sonnet,
-  // the effective model confidence is 80 * (80/100) = 64. Floor at spec value if
-  // detection is high-confidence (>= 80).
+  // Scale model confidence by platform detection confidence, unless
+  // detection is already high-confidence (>= HIGH_CONFIDENCE_THRESHOLD) —
+  // then use the spec value as-is rather than discounting it further.
   const effectiveConfidence =
-    detection.confidence >= 80
+    detection.confidence >= HIGH_CONFIDENCE_THRESHOLD
       ? entry.confidence
       : Math.round(entry.confidence * (detection.confidence / 100));
 

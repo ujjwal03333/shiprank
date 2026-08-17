@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs } from "./args.js";
+import { parseArgs, type ParsedArgs } from "./args.js";
 import { scanProject, getAgentsMd } from "./scanner.js";
 import { renderTerminalOutput, renderJsonOutput } from "./formatter.js";
 import { uploadResult } from "./uploader.js";
@@ -29,47 +29,34 @@ Examples:
   npx shiprank compile "build a SaaS with Stripe and Supabase"
 `.trim();
 
-async function main(): Promise<number> {
-  const args = parseArgs(process.argv);
+async function runCompileCommand(prompt: string): Promise<number> {
+  const limiter = createMemoryRateLimiter(5);
+  const id = hostname();
+  const result = await compile(prompt, id, limiter);
 
-  if (args.help) {
-    process.stdout.write(HELP + "\n");
-    return 0;
-  }
-
-  if (args.command === "compile") {
-    if (!args.compilePrompt) {
-      process.stderr.write('Usage: npx shiprank compile "<your prompt>"\n');
+  if ("kind" in result) {
+    if (result.kind === "rate_limited") {
+      const reset = new Date(result.resetAt).toLocaleTimeString();
+      process.stderr.write(`Rate limit reached. Resets at ${reset}\n`);
       return 1;
     }
-
-    const limiter = createMemoryRateLimiter(5);
-    const id = hostname();
-    const result = await compile(args.compilePrompt, id, limiter);
-
-    if ("kind" in result) {
-      if (result.kind === "rate_limited") {
-        const reset = new Date(result.resetAt).toLocaleTimeString();
-        process.stderr.write(`Rate limit reached. Resets at ${reset}\n`);
-        return 1;
-      }
-      process.stderr.write(`Error: ${result.message}\n`);
-      return 1;
-    }
-
-    for (const step of result.steps) {
-      if (!result.isSingleStep) {
-        process.stdout.write(`\n### Step ${step.index}: ${step.name}\n`);
-      }
-      if (step.stack) process.stdout.write(`\n## STACK\n${step.stack}\n`);
-      if (step.build) process.stdout.write(`\n## BUILD\n${step.build}\n`);
-      if (step.constraints) process.stdout.write(`\n## CONSTRAINTS\n${step.constraints}\n`);
-      if (step.output) process.stdout.write(`\n## OUTPUT\n${step.output}\n`);
-    }
-    return 0;
+    process.stderr.write(`Error: ${result.message}\n`);
+    return 1;
   }
 
-  // scan command
+  for (const step of result.steps) {
+    if (!result.isSingleStep) {
+      process.stdout.write(`\n### Step ${step.index}: ${step.name}\n`);
+    }
+    if (step.stack) process.stdout.write(`\n## STACK\n${step.stack}\n`);
+    if (step.build) process.stdout.write(`\n## BUILD\n${step.build}\n`);
+    if (step.constraints) process.stdout.write(`\n## CONSTRAINTS\n${step.constraints}\n`);
+    if (step.output) process.stdout.write(`\n## OUTPUT\n${step.output}\n`);
+  }
+  return 0;
+}
+
+async function runScanCommand(args: ParsedArgs): Promise<number> {
   let result;
   try {
     result = await scanProject(args.dir);
@@ -105,6 +92,25 @@ async function main(): Promise<number> {
   }
 
   return 0;
+}
+
+async function main(): Promise<number> {
+  const args = parseArgs(process.argv);
+
+  if (args.help) {
+    process.stdout.write(HELP + "\n");
+    return 0;
+  }
+
+  if (args.command === "compile") {
+    if (!args.compilePrompt) {
+      process.stderr.write('Usage: npx shiprank compile "<your prompt>"\n');
+      return 1;
+    }
+    return runCompileCommand(args.compilePrompt);
+  }
+
+  return runScanCommand(args);
 }
 
 main().then((code) => process.exit(code)).catch((err) => {

@@ -173,6 +173,38 @@ describe("QUAL-002 — TypeScript strict mode", () => {
     }));
     expect(result.passed).toBe(false);
   });
+
+  it("PASS: no ROOT tsconfig.json, but a nested package tsconfig has strict: true (monorepo)", () => {
+    // Regression: a monorepo commonly has no root tsconfig.json at all —
+    // only per-package ones, often via an extends chain to a shared base.
+    // profile.tsConfig is only populated from a root-level file, so this
+    // must not short-circuit to an automatic fail.
+    const result = runQual("QUAL-002", makeProfile({
+      tsConfig: null,
+      files: [
+        file("apps/web/tsconfig.json", JSON.stringify({
+          extends: "@shiprank/tsconfig/nextjs.json",
+          compilerOptions: { target: "ES2017" },
+        })),
+        file("packages/config-typescript/base.json", JSON.stringify({
+          compilerOptions: { strict: true },
+        })),
+        file("apps/web/app/page.tsx", "export default function Page() { return null; }"),
+      ],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("FAIL: no root tsconfig, nested tsconfig exists but nothing sets strict", () => {
+    const result = runQual("QUAL-002", makeProfile({
+      tsConfig: null,
+      files: [
+        file("apps/web/tsconfig.json", JSON.stringify({ compilerOptions: { target: "ES2017" } })),
+        file("apps/web/app/page.tsx", "export default function Page() { return null; }"),
+      ],
+    }));
+    expect(result.passed).toBe(false);
+  });
 });
 
 // ── QUAL-003: Excessive 'any' types ─────────────────────────────────────────
@@ -462,6 +494,102 @@ async function fetchPosts() {
     expect(result.passed).toBe(false);
     expect(result.failMessage).toContain("Mixed");
   });
+
+  it("PASS: Supabase {data, error} = await ...; if (error) pattern counts as handled", () => {
+    // Regression: this is the idiomatic Supabase/PostgREST error-handling
+    // pattern — the client reports failures via a returned `error` field
+    // rather than throwing, so it's just as much "handling" as try/catch.
+    const result = runQual("QUAL-009", makeProfile({
+      files: [
+        file("src/a.ts", `
+export async function GET() {
+  const { data, error } = await db.from("t").select("*");
+  if (error) return Response.json({ error: "failed" }, { status: 500 });
+  return Response.json(data);
+}
+`),
+        file("src/b.ts", `
+export async function POST() {
+  const { data, error } = await db.from("t").insert({});
+  if (error) return Response.json({ error: "failed" }, { status: 500 });
+  return Response.json(data);
+}
+`),
+        file("src/c.ts", `
+export async function DELETE() {
+  const { data, error } = await db.from("t").delete();
+  if (error) return Response.json({ error: "failed" }, { status: 500 });
+  return Response.json(data);
+}
+`),
+      ],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("FAIL: destructures error but never checks it — still unhandled", () => {
+    const result = runQual("QUAL-009", makeProfile({
+      files: [
+        file("src/a.ts", 'export async function f1() { const { data, error } = await db.from("t").select("*"); return data; }'),
+        file("src/b.ts", 'export async function f2() { const { data, error } = await db.from("t").select("*"); return data; }'),
+        file("src/c.ts", 'export async function f3() { const { data, error } = await db.from("t").select("*"); return data; }'),
+      ],
+    }));
+    expect(result.passed).toBe(false);
+  });
+
+  it("PASS: a differently-named error variable (scanErr, dbError) still counts as handled", () => {
+    // Regression: a function making more than one query commonly needs
+    // distinct names to avoid shadowing (`scanErr`, `dbError`), not the
+    // literal identifier `error`.
+    const result = runQual("QUAL-009", makeProfile({
+      files: [
+        file("src/a.ts", `
+export async function GET() {
+  const { data: scan, error: scanErr } = await db.from("scans").select("*");
+  if (scanErr || !scan) return Response.json({ error: "not found" }, { status: 404 });
+  return Response.json(scan);
+}
+`),
+        file("src/b.ts", `
+export async function POST() {
+  const { data, error: dbError } = await db.from("t").insert({});
+  if (dbError) return Response.json({ error: "failed" }, { status: 500 });
+  return Response.json(data);
+}
+`),
+        file("src/c.ts", `
+export async function DELETE() {
+  const { data, error: deleteErr } = await db.from("t").delete();
+  if (deleteErr) return Response.json({ error: "failed" }, { status: 500 });
+  return Response.json(data);
+}
+`),
+      ],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("PASS: page.tsx / layout.tsx Server Components are excluded (covered by the framework's error.tsx boundary)", () => {
+    const files = [
+      file("app/dashboard/page.tsx", "export default async function Page() { const data = await fetchStuff(); return null; }"),
+      file("app/leaderboard/page.tsx", "export default async function Page() { const data = await fetchStuff(); return null; }"),
+      file("app/layout.tsx", "export default async function Layout() { const data = await fetchStuff(); return null; }"),
+    ];
+    const result = runQual("QUAL-009", makeProfile({ files }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("FAIL: a route.ts handler with the same unguarded pattern is still flagged (page/layout exclusion doesn't leak to routes)", () => {
+    const result = runQual("QUAL-009", makeProfile({
+      files: [
+        file("app/api/a/route.ts", "export async function GET() { const data = await fetchStuff(); return Response.json(data); }"),
+        file("app/api/b/route.ts", "export async function GET() { const data = await fetchStuff(); return Response.json(data); }"),
+        file("app/api/c/route.ts", "export async function GET() { const data = await fetchStuff(); return Response.json(data); }"),
+      ],
+    }));
+    expect(result.passed).toBe(false);
+  });
 });
 
 // ── QUAL-010: Magic numbers/strings ──────────────────────────────────────────
@@ -498,6 +626,50 @@ describe("QUAL-010 — magic numbers", () => {
     expect(result.passed).toBe(false);
     expect(result.failMessage).toContain("magic number");
   });
+
+  it("PASS: numbers glued to Tailwind utility-class tokens are not magic", () => {
+    // w-16, gap-24, duration-300 (hyphen-glued) and bg-surface/60 (slash-glued
+    // opacity modifier) — the class name itself names the value.
+    const code = Array(6).fill('<div className="w-16 h-16 gap-24 duration-300 bg-surface/60" />').join("\n");
+    const result = runQual("QUAL-010", makeProfile({
+      files: [file("src/Component.tsx", code)],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("PASS: numbers as labeled object-property values are not magic", () => {
+    const lines = Array(6).fill('const check = { scoreWeight: 15, confidence: 85, fixTime: "30 min" };');
+    const result = runQual("QUAL-010", makeProfile({
+      files: [file("src/checks.ts", lines.join("\n"))],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("PASS: the same number repeated across unrelated files, but not within any single file, is not magic", () => {
+    // Regression: cross-file aggregation used to flag coincidental reuse of
+    // a round number across unrelated files/packages as one shared "magic
+    // number" problem — there's no single constant that would sensibly
+    // unify unrelated numbers in unrelated files.
+    const result = runQual("QUAL-010", makeProfile({
+      files: [
+        file("packages/a/src/one.ts", "const x = 42;"),
+        file("packages/b/src/two.ts", "const y = 42;"),
+        file("packages/c/src/three.ts", "const z = 42;"),
+      ],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("FAIL: a number repeated 3+ times within one file is still magic", () => {
+    const lines: string[] = [];
+    for (let n = 60; n <= 65; n++) {
+      for (let r = 0; r < 3; r++) lines.push(`doThing(${n});`);
+    }
+    const result = runQual("QUAL-010", makeProfile({
+      files: [file("src/one-file.ts", lines.join("\n"))],
+    }));
+    expect(result.passed).toBe(false);
+  });
 });
 
 // ── QUAL-011: Overly complex functions ───────────────────────────────────────
@@ -519,6 +691,48 @@ describe("QUAL-011 — overly complex functions", () => {
     }));
     expect(result.passed).toBe(false);
     expect(result.failMessage).toContain("complexity");
+  });
+
+  it("PASS: many small TypeScript-typed const-arrow functions in one file (not one complex function)", () => {
+    // Regression: `const checkXXX: CheckFn = (profile) => {...}` — a typed
+    // variable declaration — used to not match the function-start regex at
+    // all, so a file full of small typed check functions looked like one
+    // giant function with all their branches combined.
+    const fns: string[] = [];
+    for (let i = 0; i < 15; i++) {
+      fns.push(`const check${i}: CheckFn = (profile) => {
+  if (profile.files.length === 0) return pass();
+  if (profile.hasAuth) return pass();
+  return fail();
+};`);
+    }
+    const code = fns.join("\n\n") + "\n".repeat(50); // push line count past the 60-line floor
+    const result = runQual("QUAL-011", makeProfile({
+      files: [file("src/checks.ts", code)],
+    }));
+    expect(result.passed).toBe(true);
+  });
+
+  it("PASS: many small object-method-shorthand handlers in one file (not one complex function)", () => {
+    // Regression: `detect(paths, deps) { ... }` (object-literal method
+    // shorthand) used to not match the function-start regex either — a
+    // common shape for "array of independent rule handlers" files.
+    const rules: string[] = [];
+    for (let i = 0; i < 15; i++) {
+      rules.push(`{
+    platform: "p${i}",
+    detect(paths, deps) {
+      if (paths.has("a")) return true;
+      if (deps["b"]) return true;
+      return false;
+    },
+  },`);
+    }
+    const code = `const RULES = [\n${rules.join("\n")}\n];\n` + "\n".repeat(50);
+    const result = runQual("QUAL-011", makeProfile({
+      files: [file("src/rules.ts", code)],
+    }));
+    expect(result.passed).toBe(true);
   });
 });
 

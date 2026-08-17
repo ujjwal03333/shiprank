@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { gradeBadgeClass } from "@/lib/grade";
 import { formatPlatformName, timeAgo } from "@/lib/format-names";
 
@@ -93,9 +94,9 @@ function FilterSelect({
 }) {
   return (
     <select
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      aria-label={ariaLabel}
       className="rounded-md border border-border bg-surface px-3 py-1.5 font-body text-xs text-ink outline-none transition-colors focus:border-brand/50"
     >
       {options.map((o) => (
@@ -222,12 +223,12 @@ export function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
                   <td className="px-5 py-3 font-body text-sm text-ink">
                     <span className="flex items-center gap-2">
                       {e.scan_id ? (
-                        <a
+                        <Link
                           href={`/scan/${e.scan_id}`}
                           className="transition-colors hover:text-brand hover:underline"
                         >
                           {e.project_name}
-                        </a>
+                        </Link>
                       ) : (
                         e.project_name
                       )}

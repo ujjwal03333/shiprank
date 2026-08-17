@@ -47,7 +47,7 @@ export function ScoreGauge({ score, grade, size = 176 }: ScoreGaugeProps) {
 
   return (
     <div
-      className="relative flex items-center justify-center"
+      className={`relative flex items-center justify-center ${score === 100 ? "score-perfect rounded-full" : ""}`}
       style={{ width: size, height: size }}
     >
       <svg
@@ -87,7 +87,8 @@ export function ScoreGauge({ score, grade, size = 176 }: ScoreGaugeProps) {
         </span>
         <span className="mt-0.5 font-mono text-xs text-ink-subtle">/ 100</span>
         <span
-          className={`mt-2 rounded px-2 py-0.5 font-mono text-xs font-medium ${gradeBadgeClass(grade)}`}
+          className={`chip-pop mt-2 rounded px-2 py-0.5 font-mono text-xs font-medium ${gradeBadgeClass(grade)}`}
+          style={{ animationDelay: "700ms" }}
         >
           {grade}
         </span>

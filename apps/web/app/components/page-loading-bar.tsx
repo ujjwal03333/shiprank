@@ -24,11 +24,18 @@ export function PageLoadingBar() {
 
     function stopLoading() {
       if (timer.current) clearInterval(timer.current);
-      setProgress(100);
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 300);
+      // Deferred: history.pushState/replaceState below are called by Next.js's
+      // App Router from within its own useInsertionEffect during navigation.
+      // Setting state synchronously in that call chain trips React's
+      // "useInsertionEffect must not schedule updates" warning — queueMicrotask
+      // escapes the insertion-effect phase without adding perceptible delay.
+      queueMicrotask(() => {
+        setProgress(100);
+        setTimeout(() => {
+          setLoading(false);
+          setProgress(0);
+        }, 300);
+      });
     }
 
     history.pushState = function (...args) {

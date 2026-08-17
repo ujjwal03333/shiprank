@@ -150,6 +150,33 @@ describe("SEC-001 — secret detection (critical gate)", () => {
     const result = runSec("SEC-001", profile);
     expect(result.passed).toBe(true);
   });
+
+  it("PASS: realistic fake secret in a test fixture is not flagged (self-scan false positive)", () => {
+    // A security scanner's own test suite legitimately contains
+    // realistic-looking fake secrets to validate detection — that's
+    // different from a leaked production secret, and shouldn't fail SEC-001
+    // when the scanner scans its own repo.
+    const testPath = "src/__tests__/checks-security.test.ts";
+    const profile = makeProfile({
+      testFiles: [testPath],
+      files: [
+        file(testPath, 'const apiKey = "sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF";'),
+      ],
+    });
+    const result = runSec("SEC-001", profile);
+    expect(result.passed).toBe(true);
+  });
+
+  it("FAIL: the same secret pattern in a non-test file is still flagged", () => {
+    const profile = makeProfile({
+      testFiles: ["src/__tests__/checks-security.test.ts"],
+      files: [
+        file("lib/openai.ts", 'const apiKey = "sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF";'),
+      ],
+    });
+    const result = runSec("SEC-001", profile);
+    expect(result.passed).toBe(false);
+  });
 });
 
 // ── SEC-002: .gitignore ───────────────────────────────────────────────────────
@@ -174,6 +201,103 @@ describe("SEC-002 — .env in .gitignore", () => {
   it("FAIL: no .gitignore at all", () => {
     const profile = makeProfile({ files: [] });
     expect(runSec("SEC-002", profile).passed).toBe(false);
+  });
+});
+
+// ── SEC-005: Security headers ─────────────────────────────────────────────────
+
+describe("SEC-005 — security headers", () => {
+  it("PASS: all 5 headers present in next.config.ts", () => {
+    const profile = makeProfile({
+      configFiles: {
+        "next.config.ts": [
+          'const headers = [{ key: "Content-Security-Policy", value: "default-src self" }];',
+          '{ key: "X-Frame-Options", value: "DENY" }',
+          '{ key: "X-Content-Type-Options", value: "nosniff" }',
+          '{ key: "Strict-Transport-Security", value: "max-age=63072000" }',
+          '{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }',
+        ].join("\n"),
+      },
+    });
+    expect(runSec("SEC-005", profile).passed).toBe(true);
+  });
+
+  it("FAIL: no headers configured anywhere", () => {
+    const profile = makeProfile({ configFiles: { "next.config.ts": "export default {};" } });
+    expect(runSec("SEC-005", profile).passed).toBe(false);
+  });
+
+  it("PASS: headers still recognized when configFiles concatenates multiple same-basename configs", () => {
+    // Regression for the profile-builder fix: a real config's headers must
+    // still be visible even when a same-named stub config elsewhere in the
+    // tree got concatenated into the same configFiles entry.
+    const profile = makeProfile({
+      configFiles: {
+        "next.config.ts": [
+          'const headers = [{ key: "Content-Security-Policy", value: "default-src self" }, { key: "X-Frame-Options", value: "DENY" }, { key: "X-Content-Type-Options", value: "nosniff" }, { key: "Strict-Transport-Security", value: "max-age=63072000" }, { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }];',
+          "export default {};", // concatenated stub from an unrelated fixture
+        ].join("\n"),
+      },
+    });
+    expect(runSec("SEC-005", profile).passed).toBe(true);
+  });
+});
+
+// ── SEC-011: Secrets in git history ───────────────────────────────────────────
+
+describe("SEC-011 — secrets in git history", () => {
+  it("PASS: real secret pattern inside a test-file diff hunk is not flagged", () => {
+    const diff = [
+      "diff --git a/src/__tests__/checks-security.test.ts b/src/__tests__/checks-security.test.ts",
+      "index abc123..def456 100644",
+      "--- a/src/__tests__/checks-security.test.ts",
+      "+++ b/src/__tests__/checks-security.test.ts",
+      '+const apiKey = "sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF";',
+    ].join("\n");
+    const profile = makeProfile({
+      gitCommits: [{ hash: "d896f08aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", message: "Add check engine tests", diff }],
+    });
+    expect(runSec("SEC-011", profile).passed).toBe(true);
+  });
+
+  it("FAIL: the same secret pattern in a non-test file diff hunk is still flagged", () => {
+    const diff = [
+      "diff --git a/lib/openai.ts b/lib/openai.ts",
+      "index abc123..def456 100644",
+      "--- a/lib/openai.ts",
+      "+++ b/lib/openai.ts",
+      '+const apiKey = "sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF";',
+    ].join("\n");
+    const profile = makeProfile({
+      gitCommits: [{ hash: "abc123", message: "Add OpenAI client", diff }],
+    });
+    expect(runSec("SEC-011", profile).passed).toBe(false);
+  });
+
+  it("FAIL: a commit touching both a test file and a real file still catches the real-file secret", () => {
+    const diff = [
+      "diff --git a/src/__tests__/x.test.ts b/src/__tests__/x.test.ts",
+      "index 111..222 100644",
+      "--- a/src/__tests__/x.test.ts",
+      "+++ b/src/__tests__/x.test.ts",
+      '+const fake = "sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF";',
+      "diff --git a/lib/real.ts b/lib/real.ts",
+      "index 333..444 100644",
+      "--- a/lib/real.ts",
+      "+++ b/lib/real.ts",
+      '+const real = "sk-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";',
+    ].join("\n");
+    const profile = makeProfile({
+      gitCommits: [{ hash: "def456", message: "Mixed commit", diff }],
+    });
+    expect(runSec("SEC-011", profile).passed).toBe(false);
+  });
+
+  it("PASS: no gitCommits available (confidence 0, doesn't block)", () => {
+    const profile = makeProfile({ gitCommits: null });
+    const result = runSec("SEC-011", profile);
+    expect(result.passed).toBe(true);
+    expect(result.confidence).toBe(0);
   });
 });
 

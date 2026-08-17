@@ -11,14 +11,25 @@ export default function NotFound() {
       </h1>
       <p className="mt-3 max-w-md font-body text-base leading-relaxed text-ink-muted">
         The page you&apos;re looking for doesn&apos;t exist or may have been
-        moved. Head back to the homepage and try again.
+        moved.
       </p>
-      <Link
-        href="/"
-        className="mt-8 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-body text-sm font-medium text-ink-onbrand shadow-sm transition-colors hover:bg-brand-hover"
-      >
-        Back to home
-      </Link>
+      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <Link
+          href="/dare"
+          className="press inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-body text-sm font-medium text-ink-onbrand shadow-sm transition-colors hover:bg-brand-hover"
+        >
+          Dare a public repo
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="press inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-5 py-2.5 font-body text-sm text-ink transition-colors hover:bg-surface-raised"
+        >
+          Browse the leaderboard
+        </Link>
+      </div>
+      <code className="mt-6 rounded-lg border border-border bg-surface-sunken px-4 py-2.5 font-mono text-xs text-ink-muted">
+        npx shiprank ./your-project
+      </code>
     </div>
   );
 }

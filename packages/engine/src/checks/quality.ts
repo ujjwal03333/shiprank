@@ -131,11 +131,19 @@ const checkQUAL002: CheckFn = (profile) => {
   };
 
   if (!profile.tsConfig) {
-    const hasTSFiles = profile.files.some(f => TS_EXTS.has(f.ext));
-    if (!hasTSFiles) {
-      return pass({ ...base, title: "TypeScript not used (strict mode N/A)" });
+    // A monorepo commonly has no ROOT tsconfig.json — each package has its
+    // own, often via an `extends` chain to a shared config. Only treat this
+    // as "no tsconfig" when there's truly no tsconfig anywhere in the tree;
+    // hasStrictEnabled already scans every nested tsconfig*.json and shared
+    // base.json, so a nested one found here still falls through to it.
+    const hasNestedTsconfig = profile.files.some(f => /tsconfig[^/]*\.json$/.test(f.path) && f.content);
+    if (!hasNestedTsconfig) {
+      const hasTSFiles = profile.files.some(f => TS_EXTS.has(f.ext));
+      if (!hasTSFiles) {
+        return pass({ ...base, title: "TypeScript not used (strict mode N/A)" });
+      }
+      return fail(base, "No tsconfig.json found.", "tsconfig.json missing from project root.");
     }
-    return fail(base, "No tsconfig.json found.", "tsconfig.json missing from project root.");
   }
 
   if (hasStrictEnabled(profile)) return pass(base);
@@ -483,7 +491,17 @@ const checkQUAL009: CheckFn = (profile) => {
 
   const testPathSet = new Set(profile.testFiles);
   const prodFiles = profile.files.filter(
-    f => SOURCE_EXTS.has(f.ext) && f.content && !testPathSet.has(f.path),
+    f =>
+      SOURCE_EXTS.has(f.ext) &&
+      f.content &&
+      !testPathSet.has(f.path) &&
+      // Next.js page/layout Server Components aren't held to the same bar
+      // as route handlers: an uncaught exception here is already caught by
+      // the framework's nearest error.tsx boundary (or its built-in default
+      // if the app hasn't added one) and rendered as a real error UI, not a
+      // raw crash — so explicit try/catch is a stylistic choice, not a gap.
+      !/\/(page|layout)\.(tsx|jsx|ts|js)$/.test(f.path) &&
+      !/^(page|layout)\.(tsx|jsx|ts|js)$/.test(f.path),
   );
 
   let tryCatchCount = 0;
@@ -494,6 +512,14 @@ const checkQUAL009: CheckFn = (profile) => {
   const AWAIT_RE = /\bawait\b/g;
   const TRY_CATCH_RE = /\btry\s*\{/g;
   const DOT_CATCH_RE = /\.catch\s*\(/g;
+  // Supabase/PostgREST idiom: `const { data, error } = await ...` followed by
+  // an `if (error)` guard (or a differently-named error variable, e.g.
+  // `scanErr` — common when a function makes more than one query and needs
+  // distinct names) is just as much "handling" the error as try/catch or
+  // .catch() — it's the documented way that client reports failures without
+  // throwing.
+  const RESULT_DESTRUCTURE_RE = /\{[^}]*\b\w*[Ee]rr(?:or)?\b[^}]*\}\s*=\s*await\b/g;
+  const IF_ERROR_RE = /\bif\s*\(\s*\w*[Ee]rr(?:or)?\b/g;
 
   for (const file of prodFiles) {
     const content = file.content;
@@ -503,11 +529,14 @@ const checkQUAL009: CheckFn = (profile) => {
     const awaits = (content.match(AWAIT_RE) ?? []).length;
     const tryCatches = (content.match(TRY_CATCH_RE) ?? []).length;
     const dotCatches = (content.match(DOT_CATCH_RE) ?? []).length;
+    const hasResultErrorHandling =
+      (content.match(RESULT_DESTRUCTURE_RE) ?? []).length > 0 &&
+      (content.match(IF_ERROR_RE) ?? []).length > 0;
 
     tryCatchCount += tryCatches;
     dotCatchCount += dotCatches;
 
-    if (awaits > 0 && tryCatches === 0 && dotCatches === 0) {
+    if (awaits > 0 && tryCatches === 0 && dotCatches === 0 && !hasResultErrorHandling) {
       unhandledAwaitFiles.push(`${file.path} (${awaits} await(s), 0 error handlers)`);
     }
   }
@@ -559,30 +588,45 @@ const checkQUAL010: CheckFn = (profile) => {
 
   if (sourceFiles.length === 0) return pass(base);
 
-  const SAFE_NUMBERS = new Set([0, 1, 2, 3, 10, 100, 200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 1000, 1024, 3000, 8080]);
+  const SAFE_NUMBERS = new Set([
+    0, 1, 2, 3, 10, 100, 200, 201, 204, 301, 302, 307, 308,
+    400, 401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504,
+    1000, 1024, 3000, 8080,
+  ]);
 
-  const allContent = sourceFiles.map(f => f.content).join("\n");
-  const NUM_RE = /(?<![.\w])(\d{2,})(?![.\w])/g;
-  const numCounts = new Map<number, number>();
+  // A number is only "magic" when its meaning is unclear from local
+  // context. Several common cases are NOT that: a number glued to a CSS
+  // utility-class token — `w-16`, `duration-300` (hyphen) or `bg-surface/60`
+  // (slash-glued opacity modifier) — where the surrounding class name IS
+  // the name; a number as a labeled object-property value (`scoreWeight:
+  // 15` — the key already names it); and a number inside a labeled
+  // *string* value (`fixTime: "30 min"` — same reasoning).
+  const NUM_RE = /(?<![.\w])(?<![a-zA-Z][-/])(?<!:\s{0,20}['"]?)(\d{2,})(?![.\w])/g;
 
-  for (const m of allContent.matchAll(NUM_RE)) {
-    const n = parseInt(m[1]!, 10);
-    if (SAFE_NUMBERS.has(n) || isNaN(n)) continue;
-    numCounts.set(n, (numCounts.get(n) ?? 0) + 1);
-  }
-
-  const magicNums: string[] = [];
-  for (const [num, count] of numCounts) {
-    if (count >= 3) {
-      magicNums.push(`${num} (${count}×)`);
+  // Repetition is only a real "extract a constant" smell when it happens
+  // WITHIN one file — the same round number recurring by coincidence
+  // across unrelated files in a large multi-package repo isn't the same
+  // code smell (there's no single constant that would sensibly unify a
+  // Tailwind class in one component with an unrelated check's fixTime
+  // string in another package).
+  const magicPairs: string[] = [];
+  for (const file of sourceFiles) {
+    const numCounts = new Map<number, number>();
+    for (const m of file.content.matchAll(NUM_RE)) {
+      const n = parseInt(m[1]!, 10);
+      if (SAFE_NUMBERS.has(n) || isNaN(n)) continue;
+      numCounts.set(n, (numCounts.get(n) ?? 0) + 1);
+    }
+    for (const [num, count] of numCounts) {
+      if (count >= 3) magicPairs.push(`${num} (${count}× in ${file.path})`);
     }
   }
 
-  if (magicNums.length > 5) {
+  if (magicPairs.length > 5) {
     return fail(
       base,
-      `${magicNums.length} magic number(s) repeated 3+ times across source files.`,
-      magicNums.slice(0, 3).join("; "),
+      `${magicPairs.length} magic number(s) repeated 3+ times within a single file.`,
+      magicPairs.slice(0, 3).join("; "),
     );
   }
 
@@ -611,7 +655,14 @@ const checkQUAL011: CheckFn = (profile) => {
   );
 
   const BRANCH_KEYWORDS = /\b(if|else\s+if|for|while|switch|case|\?\?|&&|\|\||\?)\b/g;
-  const FUNC_START = /(?:function\s+\w+|(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?(?:\([^)]*\)|[a-zA-Z_$]\w*)\s*=>|(?:async\s+)?(?:function\s*\(|(?:get|set)\s+\w+\s*\())/g;
+  // Matches function declarations, arrow functions assigned to a variable
+  // (including TypeScript-typed ones — `const x: Type = (...) => {}` and
+  // `const x = (...): ReturnType => {}` are both extremely common and were
+  // previously missed entirely, undercounting fnCount and inflating the
+  // average-branches-per-function ratio), and object-method shorthand
+  // (`name(...) { ... }`), which is how a "many small handlers" file (e.g.
+  // an array of platform-detection rules) is typically structured.
+  const FUNC_START = /(?:function\s+\w+|(?:const|let|var)\s+\w+(?:\s*:\s*[^=\n]+)?\s*=\s*(?:async\s+)?(?:\([^)]*\)(?:\s*:\s*[^=]+?)?|[a-zA-Z_$]\w*)\s*=>|(?:async\s+)?(?:function\s*\(|(?:get|set)\s+\w+\s*\()|\b(?!if\b|for\b|while\b|switch\b|catch\b|function\b|return\b|typeof\b|instanceof\b|new\b|await\b|yield\b|else\b|do\b)[a-zA-Z_$][\w$]*\s*\([^)]*\)\s*\{)/g;
 
   const complexFns: string[] = [];
   const LINE_THRESHOLD = 60;

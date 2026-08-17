@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "About",
@@ -12,7 +13,7 @@ export default function AboutPage() {
       <div>
         <span className="font-mono text-xs text-brand uppercase tracking-widest">About</span>
         <h1 className="font-display text-3xl text-ink mt-2">
-          The finishing service for AI-built software
+          Making AI-generated code safe for production
         </h1>
       </div>
 
@@ -31,15 +32,26 @@ export default function AboutPage() {
           still be true tomorrow.
         </p>
         <p>
-          It started as a tool for AI-assisted development, and stayed one:
-          the CLI runs locally, the free tier has no expiry, and the
-          methodology is public.
+          Built by{" "}
+          <a
+            href="https://github.com/ujjwal03333"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-ink transition-colors hover:text-brand"
+          >
+            Ujjwal
+          </a>
+          . The CLI runs locally, the free tier has no expiry, and the{" "}
+          <Link href="/methodology" className="text-brand-ink transition-colors hover:text-brand">
+            scoring methodology
+          </Link>{" "}
+          is public.
         </p>
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
         <p className="font-body text-sm text-ink-muted leading-relaxed">
-          Questions, bug reports, or partnership inquiries:{" "}
+          Questions, bug reports, data-deletion requests, or partnerships:{" "}
           <a
             href="mailto:hello@shiprank.dev"
             className="text-brand-ink transition-colors hover:text-brand"

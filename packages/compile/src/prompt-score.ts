@@ -15,6 +15,8 @@ export interface PromptScore {
   testability: number;
 }
 
+const MAX_POINTS_PER_DIMENSION = 20;
+
 const FRAMEWORK_RE = /\b(next\.?js|react|vue|nuxt|remix|svelte(kit)?|astro|angular|solid(js)?)\b/i;
 const DATABASE_RE = /\b(supabase|postgres(ql)?|firebase|firestore|mongo(db)?|mysql|planetscale|prisma|sqlite|dynamodb)\b/i;
 
@@ -25,7 +27,7 @@ function scoreStackClarity(text: string, stackKeys: StackKey[]): number {
   const hasIntegration = stackKeys.some((k) => integrationKeys.includes(k));
 
   const hits = [hasFramework, hasDatabase, hasIntegration].filter(Boolean).length;
-  if (hits >= 3) return 20;
+  if (hits >= 3) return MAX_POINTS_PER_DIMENSION;
   if (hits >= 1) return 10;
   return 0;
 }
@@ -72,7 +74,7 @@ function scoreSecurityCoverage(text: string, stackKeys: StackKey[]): number {
     return keywords.some((kw) => lower.includes(kw));
   }).length;
 
-  return Math.round((mentioned / applicable.length) * 20);
+  return Math.round((mentioned / applicable.length) * MAX_POINTS_PER_DIMENSION);
 }
 
 const PERSONA_RE = /\b(user|customer|admin|guest|host|tenant|patient|client|member|visitor|owner)s?\b/i;
@@ -95,7 +97,7 @@ const BULLET_OR_NUMBERED_RE = /^\s*(?:[-*•]|\d+[.)]|#{1,6}\s|Step\s+\d+:)/m;
 const CONNECTOR_RE = /\b(then|after|once|next|finally)\b/i;
 
 function scoreStructure(text: string): number {
-  if (BULLET_OR_NUMBERED_RE.test(text)) return 20;
+  if (BULLET_OR_NUMBERED_RE.test(text)) return MAX_POINTS_PER_DIMENSION;
   const sentenceCount = (text.match(/[.!?]+(\s|$)/g) ?? []).length;
   if (sentenceCount >= 2 || CONNECTOR_RE.test(text)) return 10;
   return 0;
@@ -118,7 +120,7 @@ function scoreTestability(text: string): number {
     const matches = text.match(pattern);
     if (matches) statementCount += matches.length;
   }
-  return Math.min(20, statementCount * 4);
+  return Math.min(MAX_POINTS_PER_DIMENSION, statementCount * 4);
 }
 
 /** Scores prompt text (raw user input, or compiled output) on 5 code-relevant dimensions, 20 points each. Pure local computation — no API call. */

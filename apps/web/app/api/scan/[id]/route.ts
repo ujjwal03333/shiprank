@@ -49,14 +49,22 @@ export async function GET(
   ).map((s) => s.id);
   const rawFindings = await fetchScanFindings(db, stationResultIds);
 
-  const resolved = await resolvePlan(db, request);
-  const findings = gateFindingsForPlan(rawFindings, resolved.plan);
+  // Plan resolution failing shouldn't take down the whole scan result —
+  // fall back to the most conservative (free-tier) gating so the response
+  // still succeeds with fully-redacted findings.
+  let resolvedPlan: Awaited<ReturnType<typeof resolvePlan>>["plan"] = "free";
+  try {
+    resolvedPlan = (await resolvePlan(db, request)).plan;
+  } catch {
+    /* keep the free-tier default */
+  }
+  const findings = gateFindingsForPlan(rawFindings, resolvedPlan);
   const upgradeRequired = findings.some((f) => f.upgradeRequired);
 
   return NextResponse.json({
     ...scan,
     velocity,
-    plan: resolved.plan,
+    plan: resolvedPlan,
     findings,
     upgrade_required: upgradeRequired,
   });

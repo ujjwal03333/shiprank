@@ -61,7 +61,7 @@ export function isAggregateEligible(params: {
 
 /** Ingestion-time classification. CLI uploads are verified; everything else self-reported. */
 export function classifyProvenance(source: string): Provenance {
-  if (source === "cli-upload") return "verified";
+  if (source === "cli-upload" || source === "dare") return "verified";
   if (source === "seed") return "seed";
   return "self-reported";
 }

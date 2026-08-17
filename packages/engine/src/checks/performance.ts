@@ -50,8 +50,8 @@ const checkPERF001: CheckFn = (profile) => {
 const HEAVY_IMPORTS: Array<{ re: RegExp; label: string; fix: string }> = [
   {
     re: /import\s+_\s+from\s+['"]lodash['"]/,
-    label: "import _ from 'lodash' (full bundle)",
-    fix: "import debounce from 'lodash/debounce' — import only what you need.",
+    label: "Default-imports the entire lodash library instead of individual functions",
+    fix: "Import only the lodash function(s) you need from their own subpaths.",
   },
   {
     re: /import\s+moment\s+from\s+['"]moment['"]/,
@@ -78,16 +78,21 @@ const checkPERF002: CheckFn = (profile) => {
     confidence: 90,
     title: "No full-library barrel imports",
     fixPrompt:
-      "Replace barrel imports with per-function imports. Example: import { debounce } from 'lodash/debounce' instead of import _ from 'lodash'.",
+      "Replace barrel imports with per-function imports — import the specific lodash function from its own subpath rather than default-importing the whole library.",
     fixDifficulty: "copy-paste" as const,
     fixTime: "15 min",
     autoFixSafety: "safe" as const,
     scoreWeight: 16,
   };
 
+  // Test files aren't shipped to production and don't affect bundle size —
+  // and, concretely, a check's own regression-test fixtures legitimately
+  // contain real "bad" import statements on purpose, to verify the check
+  // still catches them.
+  const testPathSet = new Set(profile.testFiles);
   const hits: string[] = [];
   for (const file of profile.files) {
-    if (!SOURCE_EXTS.has(file.ext) || !file.content) continue;
+    if (!SOURCE_EXTS.has(file.ext) || !file.content || testPathSet.has(file.path)) continue;
     for (const { re, label } of HEAVY_IMPORTS) {
       if (re.test(file.content)) hits.push(`${label} in ${file.path}`);
     }
@@ -174,8 +179,21 @@ const checkPERF004: CheckFn = (profile) => {
 };
 
 // ── PERF-005: useEffect without dependency array ──────────────────────────────
-// Matches useEffect(something) with no second argument — not useEffect(fn, [deps])
-const USE_EFFECT_NO_DEPS = /useEffect\s*\(\s*(?:async\s*)?\(\s*\)\s*=>\s*\{[\s\S]*?\},?\s*\)/g;
+// Finds the index of the ")" that closes the "(" at openParenIndex, tracking
+// paren depth so effect bodies of any length are handled correctly (a fixed
+// character-window lookahead misses dependency arrays on any reasonably
+// sized effect body).
+function findMatchingParenEnd(content: string, openParenIndex: number): number {
+  let depth = 0;
+  for (let i = openParenIndex; i < content.length; i++) {
+    if (content[i] === "(") depth++;
+    else if (content[i] === ")") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
 
 const checkPERF005: CheckFn = (profile) => {
   const base = {
@@ -192,22 +210,28 @@ const checkPERF005: CheckFn = (profile) => {
     scoreWeight: 10,
   };
 
+  // Same reasoning as PERF-002: test fixtures legitimately contain a
+  // deliberately-missing dependency array to verify the check still catches
+  // real violations, and test files don't run in the browser anyway.
+  const testPathSet = new Set(profile.testFiles);
   const hits: string[] = [];
   for (const file of profile.files) {
     if (!(file.ext === ".tsx" || file.ext === ".jsx" || file.ext === ".ts" || file.ext === ".js")) continue;
-    if (!file.content) continue;
-    // Detect useEffect( without a second argument by checking for useEffect(\nfn\n) with no ,[]
+    if (!file.content || testPathSet.has(file.path)) continue;
+    // Detect useEffect( without a second argument by finding the true end of
+    // the call (balanced parens, so this works regardless of effect body
+    // length) and checking whether it ends in ", [...]" before the close.
     const matches = [...file.content.matchAll(/useEffect\s*\(\s*(?:async\s*)?\(\s*\)\s*=>/g)];
     for (const m of matches) {
-      // Get the text from this match onwards to check for closing ), deps
-      const rest = file.content.slice(m.index!);
-      // Naive check: if the first closing paren group is not followed by , [
-      if (/^useEffect\s*\([^)]+\)\s*[;{]/.test(rest) === false) {
-        // Check if useEffect call block has a dependency array
-        if (!/useEffect\s*\([\s\S]{1,300}?,\s*\[/.test(rest.slice(0, 400))) {
-          hits.push(file.path);
-          break;
-        }
+      const openParenIndex = file.content.indexOf("(", m.index!);
+      const closeParenIndex = findMatchingParenEnd(file.content, openParenIndex);
+      if (closeParenIndex === -1) continue;
+
+      const inner = file.content.slice(openParenIndex + 1, closeParenIndex).trim();
+      const hasDepsArray = /,\s*\[[\s\S]*\]$/.test(inner);
+      if (!hasDepsArray) {
+        hits.push(file.path);
+        break;
       }
     }
   }

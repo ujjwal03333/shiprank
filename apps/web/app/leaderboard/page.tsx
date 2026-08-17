@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { formatPlatformName } from "@/lib/format-names";
 import { LeaderboardTable } from "../components/leaderboard-table";
@@ -123,9 +124,14 @@ function EmptyState() {
     <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-border-strong bg-surface/60 p-16 text-center">
       <p className="font-display text-2xl text-ink">The board is open</p>
       <p className="mx-auto max-w-sm font-body text-sm leading-relaxed text-ink-muted">
-        No scans ranked yet. The first project to upload sets the baseline —
-        and takes the #1 spot by default.
+        The leaderboard is empty. Be the first to dare a repo →
       </p>
+      <Link
+        href="/dare"
+        className="press mx-auto inline-flex items-center rounded-lg bg-brand px-5 py-2.5 font-body text-sm text-ink-onbrand hover:bg-brand-hover"
+      >
+        Dare a public repo
+      </Link>
       <code className="mx-auto rounded-lg border border-border bg-surface px-4 py-2.5 font-mono text-sm text-ink shadow-sm">
         npx shiprank ./your-project --upload
       </code>

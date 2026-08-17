@@ -109,6 +109,13 @@ export default async function ProjectHistoryPage({
         <div className="rounded-lg border border-border bg-surface p-8 text-center">
           <p className="font-body text-sm text-ink-muted">No completed scans yet.</p>
         </div>
+      ) : chartData.length === 1 ? (
+        <div className="rounded-lg border border-border bg-surface p-8 text-center flex flex-col gap-2">
+          <p className="font-display text-3xl text-ink">{chartData[0]!.score}</p>
+          <p className="font-body text-sm text-ink-muted">
+            First scan recorded. A trend line appears after the second scan.
+          </p>
+        </div>
       ) : (
         <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
           <ScoreHistoryChart data={chartData} stations={stations} />

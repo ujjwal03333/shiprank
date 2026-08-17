@@ -78,7 +78,7 @@ html {
 }
 
 .reveal {
-  animation: rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .reveal-1 {
   animation-delay: 0.06s;
@@ -105,7 +105,7 @@ html {
 }
 
 .chip-pop {
-  animation: chip-pop 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: chip-pop 150ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes shimmer {
@@ -170,7 +170,23 @@ html {
 /* Score bars render at full width immediately — width transitions handle
    any dynamic updates without an entrance animation that can stall. */
 .grow-bar {
-  transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes gold-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.score-perfect {
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-warning) 35%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: gold-shimmer 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -195,9 +211,9 @@ html {
 
 .card-hover {
   transition:
-    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
-    border-color 0.25s ease;
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
@@ -206,8 +222,19 @@ html {
 }
 
 .press {
-  transition: transform 0.12s ease;
+  transition:
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.press:active {
+.press:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.press:active:not(:disabled) {
   transform: scale(0.97);
+}
+.press:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

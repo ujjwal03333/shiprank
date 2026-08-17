@@ -18,6 +18,8 @@ export interface RateLimiter {
   check(identifier: string): Promise<RateLimitResult>;
 }
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 // ── In-memory limiter (tests + local dev) ─────────────────────────────────────
 
 interface MemoryEntry {
@@ -27,7 +29,7 @@ interface MemoryEntry {
 
 export function createMemoryRateLimiter(
   maxRequests = 5,
-  windowMs = 24 * 60 * 60 * 1000,
+  windowMs = ONE_DAY_MS,
 ): RateLimiter {
   const store = new Map<string, MemoryEntry>();
 
@@ -67,7 +69,7 @@ export function createMemoryRateLimiter(
 
 export async function createUpstashRateLimiter(
   maxRequests = 5,
-  windowMs = 24 * 60 * 60 * 1000,
+  windowMs = ONE_DAY_MS,
 ): Promise<RateLimiter> {
   const url = process.env["UPSTASH_REDIS_REST_URL"];
   const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
@@ -76,24 +78,38 @@ export async function createUpstashRateLimiter(
     return createMemoryRateLimiter(maxRequests, windowMs);
   }
 
-  const { Redis } = await import("@upstash/redis");
-  const { Ratelimit } = await import("@upstash/ratelimit");
+  try {
+    const { Redis } = await import("@upstash/redis");
+    const { Ratelimit } = await import("@upstash/ratelimit");
 
-  const redis = new Redis({ url, token });
-  const ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.fixedWindow(maxRequests, `${Math.round(windowMs / 1000)} s`),
-    analytics: false,
-  });
+    const redis = new Redis({ url, token });
+    const ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.fixedWindow(maxRequests, `${Math.round(windowMs / 1000)} s`),
+      analytics: false,
+    });
 
-  return {
-    async check(identifier: string): Promise<RateLimitResult> {
-      const result = await ratelimit.limit(identifier);
-      return {
-        allowed: result.success,
-        remaining: result.remaining,
-        resetAt: result.reset,
-      };
-    },
-  };
+    return {
+      async check(identifier: string): Promise<RateLimitResult> {
+        try {
+          const result = await ratelimit.limit(identifier);
+          return {
+            allowed: result.success,
+            remaining: result.remaining,
+            resetAt: result.reset,
+          };
+        } catch {
+          // Upstash unreachable at check-time — fail open. Blocking real
+          // requests because the rate-limiter backend hiccupped is worse
+          // than occasionally under-limiting.
+          return { allowed: true, remaining: maxRequests, resetAt: Date.now() + windowMs };
+        }
+      },
+    };
+  } catch {
+    // Missing packages or a construction-time failure — same graceful
+    // degradation as missing credentials above, rather than taking down
+    // whatever endpoint is trying to rate-limit.
+    return createMemoryRateLimiter(maxRequests, windowMs);
+  }
 }

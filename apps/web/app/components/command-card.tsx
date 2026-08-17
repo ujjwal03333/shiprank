@@ -17,6 +17,10 @@ import { BounceGame } from "./bounce-game";
 
 type Mode = "compile" | "scan";
 
+const ICON_SIZE = 16;
+const SMALL_ICON_SIZE = 12;
+const STEP_DELAY_MS = 150;
+
 interface CompileStep {
   name: string;
   index: number;
@@ -58,7 +62,7 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard unavailable */
     }
@@ -72,7 +76,7 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
     >
       {copied ? (
         <>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+          <svg width={SMALL_ICON_SIZE} height={SMALL_ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
             <path
               d="m3 8.5 3.5 3.5L13 5"
               stroke="var(--color-success)"
@@ -85,7 +89,7 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
         </>
       ) : (
         <>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+          <svg width={SMALL_ICON_SIZE} height={SMALL_ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
             <rect
               x="5.5"
               y="5.5"
@@ -203,7 +207,7 @@ export function CommandCard() {
     const stackKeys = detectStack(currentPrompt);
 
     // Stage 1 — detect stack (real, instant computation above; held briefly so it's visible)
-    await wait(150);
+    await wait(STEP_DELAY_MS);
     if (myRun !== runId.current) return;
     setCompletedStages((s) => new Set(s).add(0));
     setActiveStage(1);
@@ -220,7 +224,7 @@ export function CommandCard() {
     setActiveStage(2);
 
     // Stage 3 — score the raw prompt (real, instant)
-    await wait(150);
+    await wait(STEP_DELAY_MS);
     if (myRun !== runId.current) return;
     setCompletedStages((s) => new Set(s).add(2));
     setActiveStage(3);
@@ -228,7 +232,7 @@ export function CommandCard() {
     // Stage 4 — select applicable constraints for this stack + focus mode (real, instant)
     const selection = getApplicableConstraints(stackKeys, focusMode);
     setInjectedCount(selection.primary.length + selection.deferred.length);
-    await wait(150);
+    await wait(STEP_DELAY_MS);
     if (myRun !== runId.current) return;
     setCompletedStages((s) => new Set(s).add(3));
     setActiveStage(4);
@@ -261,7 +265,7 @@ export function CommandCard() {
       setActiveStage(5);
 
       // Stage 6 — formatting for the split-screen view (real, quick)
-      await wait(150);
+      await wait(STEP_DELAY_MS);
       if (myRun !== runId.current) return;
       setCompletedStages((s) => new Set(s).add(5));
       setActiveStage(-1);
@@ -377,6 +381,7 @@ export function CommandCard() {
         {mode === "compile" ? (
           <>
             <textarea
+              aria-label="Build prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -418,7 +423,7 @@ export function CommandCard() {
                     : "bg-surface-sunken text-ink-subtle"
                 }`}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <svg width={ICON_SIZE} height={ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
                   <path
                     d="M8 12.5v-9M4.5 7 8 3.5 11.5 7"
                     stroke="currentColor"
@@ -436,6 +441,7 @@ export function CommandCard() {
               <div className="flex flex-1 flex-col gap-1">
                 <input
                   type="text"
+                  aria-label="Scan ID"
                   value={scanId}
                   onChange={(e) => { setScanId(e.target.value); setScanIdError(null); }}
                   disabled={scanWait === "checking"}
@@ -528,7 +534,7 @@ export function CommandCard() {
           {error === "unavailable" ? (
             <div className="flex flex-col items-center gap-3 text-center">
               <span className="grid size-10 place-items-center rounded-full bg-warning-soft">
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <svg width="18" height="18" viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
                   <path d="M8 5v3.5M8 10.5v.5" stroke="var(--color-warning-ink)" strokeWidth="1.5" strokeLinecap="round" />
                   <circle cx="8" cy="8" r="6.25" stroke="var(--color-warning-ink)" strokeWidth="1.5" />
                 </svg>

@@ -19,13 +19,24 @@ export async function GET(request: Request) {
     });
   }
 
-  const db = getServiceClient();
-  const resolved = await resolvePlan(db, request);
+  try {
+    const db = getServiceClient();
+    const resolved = await resolvePlan(db, request);
 
-  return NextResponse.json({
-    plan: resolved.plan,
-    status: resolved.status,
-    email: resolved.email,
-    expires_at: resolved.expiresAt,
-  });
+    return NextResponse.json({
+      plan: resolved.plan,
+      status: resolved.status,
+      email: resolved.email,
+      expires_at: resolved.expiresAt,
+    });
+  } catch {
+    // Same contract as the not-configured branch above: an unknown caller
+    // always resolves to at least the free plan, never a hard error.
+    return NextResponse.json({
+      plan: "free",
+      status: null,
+      email: null,
+      expires_at: null,
+    });
+  }
 }

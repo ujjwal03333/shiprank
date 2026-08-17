@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 const COMMAND = "npx shiprank ./your-project";
+const ICON_SIZE = 16;
+const SMALL_ICON_SIZE = 12;
 
 export function HeroCommand() {
   const [copied, setCopied] = useState(false);
@@ -11,7 +13,7 @@ export function HeroCommand() {
     try {
       await navigator.clipboard.writeText(COMMAND);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard unavailable */
     }
@@ -27,7 +29,7 @@ export function HeroCommand() {
       <span className="ml-1 flex items-center gap-1 text-xs text-ink-subtle transition-colors group-hover:text-brand-ink">
         {copied ? (
           <>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <svg width={SMALL_ICON_SIZE} height={SMALL_ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
               <path
                 d="m3 8.5 3.5 3.5L13 5"
                 stroke="var(--color-success)"
@@ -40,7 +42,7 @@ export function HeroCommand() {
           </>
         ) : (
           <>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <svg width={SMALL_ICON_SIZE} height={SMALL_ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">
               <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
               <path
                 d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1"

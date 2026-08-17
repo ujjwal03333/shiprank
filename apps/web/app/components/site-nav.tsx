@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 
+const MENU_ICON_SIZE = 18;
+
 function LogoMark() {
   return (
     <span
@@ -27,9 +29,9 @@ function MobileMenuButton() {
       >
         <span className="sr-only">Toggle navigation menu</span>
         <svg
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
+          width={MENU_ICON_SIZE}
+          height={MENU_ICON_SIZE}
+          viewBox={`0 0 ${MENU_ICON_SIZE} ${MENU_ICON_SIZE}`}
           fill="none"
           className="peer-checked:hidden"
           aria-hidden
@@ -45,10 +47,22 @@ function MobileMenuButton() {
       <nav className="fixed inset-x-0 top-[3.75rem] z-50 hidden border-b border-border bg-canvas/95 backdrop-blur-md peer-checked:block sm:hidden">
         <div className="flex flex-col px-6 py-4 gap-1">
           <Link
+            href="/dare"
+            className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
+          >
+            Dare
+          </Link>
+          <Link
             href="/leaderboard"
             className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
           >
             Leaderboard
+          </Link>
+          <Link
+            href="/models"
+            className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
+          >
+            Models
           </Link>
           <Link
             href="/methodology"
@@ -91,10 +105,22 @@ export function SiteNav() {
         <div className="flex items-center gap-1 sm:gap-2">
           <nav className="hidden items-center gap-1 sm:flex sm:gap-2">
             <Link
+              href="/dare"
+              className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
+            >
+              Dare
+            </Link>
+            <Link
               href="/leaderboard"
               className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
             >
               Leaderboard
+            </Link>
+            <Link
+              href="/models"
+              className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
+            >
+              Models
             </Link>
             <Link
               href="/methodology"

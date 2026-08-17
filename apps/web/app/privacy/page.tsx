@@ -26,10 +26,11 @@ export default function PrivacyPage() {
         <p className="mt-3 font-mono text-xs text-ink-subtle">Last updated: August 2026</p>
       </div>
 
-      <Section title="Your source code never leaves your machine unless you ask">
+      <Section title="CLI scans stay on your machine">
         <p>
           The ShipRank CLI (<code className="font-mono text-xs bg-surface-sunken px-1 rounded">npx shiprank</code>)
-          runs the entire scan locally. Without the{" "}
+          runs the entire scan locally. Your source code never leaves your
+          machine. Without the{" "}
           <code className="font-mono text-xs bg-surface-sunken px-1 rounded">--upload</code> flag,
           nothing about your project is sent anywhere — the scan runs, prints
           a report to your terminal, and that&apos;s the end of it.
@@ -59,6 +60,24 @@ export default function PrivacyPage() {
           email and subscription status to gate access to paid features. We
           don&apos;t store payment card details — Stripe handles that
           directly and we never see full card numbers.
+        </p>
+      </Section>
+
+      <Section title="What we do not collect">
+        <p>
+          We do not collect personal data unless you take an explicit action
+          — submitting an email for checkout, or requesting deletion. There
+          is no advertising, no third-party tracking, and no analytics
+          pixels on this site.
+        </p>
+      </Section>
+
+      <Section title="Cookies">
+        <p>
+          Only essential cookies: a theme preference (light/dark) stored in{" "}
+          <code className="font-mono text-xs bg-surface-sunken px-1 rounded">localStorage</code>
+          , and a session cookie if you sign in after checkout. No tracking
+          cookies.
         </p>
       </Section>
 

@@ -52,6 +52,31 @@ export default async function DashboardPage() {
           <h1 className="font-display text-2xl text-ink mt-2">Monitored projects</h1>
         </div>
 
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm flex flex-col gap-4">
+          <h2 className="font-display text-lg text-ink">Scan anything, free</h2>
+          <p className="font-body text-sm text-ink-muted leading-relaxed">
+            You don&apos;t need an account to see a ShipScore. Run the CLI
+            locally, or dare a public GitHub repo onto the leaderboard.
+          </p>
+          <code className="rounded-lg border border-border bg-surface-sunken px-4 py-2.5 font-mono text-sm text-ink">
+            npx shiprank ./your-project
+          </code>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dare"
+              className="press rounded-md bg-brand px-4 py-2.5 font-body text-sm text-ink-onbrand transition-colors hover:bg-brand-hover"
+            >
+              Dare a public repo →
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="press rounded-md border border-border px-4 py-2.5 font-body text-sm text-ink transition-colors hover:bg-surface-raised"
+            >
+              Leaderboard
+            </Link>
+          </div>
+        </div>
+
         <div className="relative overflow-hidden rounded-lg border border-border shadow-sm">
           <div aria-hidden className="pointer-events-none select-none blur-[3px]">
             <table className="w-full text-sm">

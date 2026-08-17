@@ -34,16 +34,20 @@ export function formatModelName(raw: string | null | undefined): string {
     .replace(/Gpt/g, "GPT");
 }
 
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+
 export function timeAgo(dateString: string): string {
   const now = Date.now();
   const then = new Date(dateString).getTime();
   const seconds = Math.floor((now - then) / 1000);
 
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (seconds < SECONDS_PER_MINUTE) return "just now";
+  const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
+  if (minutes < MINUTES_PER_HOUR) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+  if (hours < HOURS_PER_DAY) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   if (days < 30) {

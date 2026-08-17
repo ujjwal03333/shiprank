@@ -22,9 +22,11 @@ export function selectDueProjects(
   return projects.filter((p) => isDue(p, now));
 }
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 const FREQUENCY_MS: Record<string, number> = {
-  daily: 24 * 60 * 60 * 1000,
-  weekly: 7 * 24 * 60 * 60 * 1000,
+  daily: ONE_DAY_MS,
+  weekly: 7 * ONE_DAY_MS,
 };
 
 /** Next scan timestamp for a frequency, computed from `from` (not now() drift). */
