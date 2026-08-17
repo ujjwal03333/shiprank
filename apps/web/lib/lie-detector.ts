@@ -13,8 +13,8 @@ export interface LieClaimResult extends LieClaim {
 }
 
 export const LIE_CLAIMS: LieClaim[] = [
-  { claim: "Authentication added", checkIds: ["SEC-004", "SEC-035"] },
-  { claim: "Database secured", checkIds: ["SEC-003", "SEC-037"] },
+  { claim: "Authentication added", checkIds: ["SEC-004", "SEC-011"] },
+  { claim: "Database secured", checkIds: ["SEC-003", "SEC-002"] },
   { claim: "Payments integrated", checkIds: ["SEC-001", "SEC-012"] },
   { claim: "Tests written", checkIds: ["QUAL-001", "QUAL-012"] },
 ];

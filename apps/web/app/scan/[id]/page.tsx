@@ -398,8 +398,19 @@ function VelocityPill({ label, direction }: { label: string; direction: "up" | "
   );
 }
 
-function ShareCard({ scanId }: { scanId: string }) {
+function ShareCard({
+  scanId,
+  projectName,
+  score,
+  grade,
+}: {
+  scanId: string;
+  projectName: string;
+  score: number;
+  grade: string;
+}) {
   const url = `https://shiprank.dev/scan/${scanId}`;
+  const tweet = `${projectName} scored ${score}/${grade} on ShipRank 🎯\nDare your app → https://shiprank.dev/dare`;
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-brand-soft bg-brand-soft/30 p-5">
       <h2 className="font-mono text-xs uppercase tracking-widest text-brand">
@@ -423,7 +434,7 @@ function ShareCard({ scanId }: { scanId: string }) {
         />
         <CopyButton text={url} label="scan URL" />
         <a
-          href={`https://x.com/intent/tweet?text=${encodeURIComponent(`I scanned my AI-built project on ShipRank\n\n${url}`)}`}
+          href={`https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="whitespace-nowrap rounded-md bg-brand px-4 py-2 font-body text-sm text-ink-onbrand transition-colors hover:bg-brand-hover"
@@ -709,7 +720,12 @@ export default async function ScanPage({
       <BadgeSnippet scanId={typedScan.id} appUrl={APP_URL} />
 
       {/* Share */}
-      <ShareCard scanId={typedScan.id} />
+      <ShareCard
+        scanId={typedScan.id}
+        projectName={project?.name ?? "This project"}
+        score={typedScan.score}
+        grade={typedScan.grade}
+      />
 
       {/* Next action CTA */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6 shadow-sm text-center">

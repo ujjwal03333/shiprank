@@ -40,6 +40,17 @@ export interface CheckResult {
   scoreWeight: number;
   /** Defaults to 'public' when omitted. Held-out checks never affect scoring. */
   visibility?: CheckVisibility;
+  /** Deterministic archaeology record. Frequency is filled by the web layer. */
+  decisionContext?: DecisionContext;
+}
+
+export interface DecisionContext {
+  aiPattern: string;
+  probableCause: string;
+  whatShouldBe: string;
+  impactChain: string;
+  frequencyPct?: number | undefined;
+  sampleSize?: number | undefined;
 }
 
 export interface FileInfo {

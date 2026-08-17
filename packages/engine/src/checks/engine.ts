@@ -9,6 +9,7 @@ import { dataChecks } from "./data";
 import { complianceChecks } from "./compliance";
 import { infrastructureChecks } from "./infrastructure";
 import { heldoutChecks } from "./heldout";
+import { decisionContextFor } from "../decision-context";
 
 const STATION_NAMES: Record<Station, string> = {
   security: "Security",
@@ -68,10 +69,14 @@ function scoreStation(checks: CheckResult[], profile: CodeProfile): number {
 export function runChecks(profile: CodeProfile): StationScore[] {
   // ALL_CHECKS are public. Held-out checks live in a separate registry and are
   // never included here, so they can never influence a station or overall score.
-  const results = ALL_CHECKS.map(fn => ({
-    ...fn(profile),
-    visibility: "public" as const,
-  }));
+  const results = ALL_CHECKS.map(fn => {
+    const result = fn(profile);
+    return {
+      ...result,
+      visibility: "public" as const,
+      decisionContext: result.decisionContext ?? decisionContextFor(result.id),
+    };
+  });
 
   const byStation = new Map<Station, CheckResult[]>();
   for (const result of results) {

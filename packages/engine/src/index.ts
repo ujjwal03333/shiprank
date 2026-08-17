@@ -32,4 +32,6 @@ export type {
   CheckFn,
   Framework,
   CheckVisibility,
+  DecisionContext,
 } from "./checks/types";
+export { decisionContextFor, DECISION_CONTEXT_IDS } from "./decision-context";
