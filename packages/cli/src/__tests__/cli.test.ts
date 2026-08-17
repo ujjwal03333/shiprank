@@ -148,6 +148,21 @@ describe("buildUploadPayload()", () => {
     const payload = buildUploadPayload(makeMinimalResult(72));
     expect(payload.stationScores).toHaveProperty("security", 80);
   });
+
+  it("omits stub-only stations from stationScores", () => {
+    const result = makeMinimalResult(72);
+    result.stations.push({
+      station: "architecture",
+      name: "Architecture",
+      score: 0,
+      implemented: 0,
+      total: 9,
+      checks: [],
+    });
+    const payload = buildUploadPayload(result);
+    expect(payload.stationScores).not.toHaveProperty("architecture");
+    expect(payload.stationScores).toHaveProperty("security", 80);
+  });
 });
 
 // ── --json output ──────────────────────────────────────────────────────────────

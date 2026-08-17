@@ -182,6 +182,7 @@ export async function processDareJob(jobId: string): Promise<void> {
       visibility: "public" | "heldout";
     }> = [];
     for (const s of stations) {
+      if (s.implemented === 0) continue;
       stationScores[s.station] = s.score;
       for (const c of s.checks) {
         if (c.confidence <= 0) continue;

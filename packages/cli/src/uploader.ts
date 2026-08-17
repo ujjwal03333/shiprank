@@ -31,6 +31,7 @@ export interface UploadPayload {
 export function buildUploadPayload(result: ScanResult): UploadPayload {
   const stationScores: Record<string, number> = {};
   for (const s of result.stations) {
+    if (s.implemented === 0) continue;
     stationScores[s.station] = s.score;
   }
 

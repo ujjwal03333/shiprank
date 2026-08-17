@@ -52,7 +52,9 @@ function severityMultiplier(profile: CodeProfile, check: CheckResult): number {
 
 function scoreStation(checks: CheckResult[], profile: CodeProfile): number {
   const active = checks.filter(c => c.confidence > 0);
-  if (active.length === 0) return 100;
+  // No implemented checks: this station is omitted from overallScore.
+  // Returning 100 here was a lie — an empty suite is not a perfect score.
+  if (active.length === 0) return 0;
 
   let totalWeight = 0;
   let earnedWeight = 0;
@@ -117,8 +119,10 @@ export function runHeldoutChecks(profile: CodeProfile): CheckResult[] {
 }
 
 export function overallScore(stationScores: StationScore[]): number {
-  // Stations weighted equally for the overall score
-  if (stationScores.length === 0) return 100;
-  const sum = stationScores.reduce((s, ss) => s + ss.score, 0);
-  return Math.round(sum / stationScores.length);
+  // Equal weight across stations that actually have implemented checks.
+  // Stub-only stations (implemented === 0) are excluded — they are not 100.
+  const scored = stationScores.filter((s) => s.implemented > 0);
+  if (scored.length === 0) return 0;
+  const sum = scored.reduce((s, ss) => s + ss.score, 0);
+  return Math.round(sum / scored.length);
 }

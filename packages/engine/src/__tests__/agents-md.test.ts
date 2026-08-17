@@ -35,7 +35,7 @@ function makeStationScores(overrides: Partial<StationScore>[] = []): StationScor
     name: station,
     score: 80,
     checks: [],
-    implemented: 0,
+    implemented: 1,
     total: 0,
     ...overrides[i],
   }));

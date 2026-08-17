@@ -91,9 +91,9 @@ export interface CodeProfile {
 export interface StationScore {
   station: Station;
   name: string;
-  score: number;    // 0-100, normalised over implemented checks only
+  score: number;    // 0-100 over implemented checks; 0 when implemented === 0 (not a grade)
   checks: CheckResult[];
-  implemented: number;
+  implemented: number; // 0 ⇒ station is excluded from overallScore
   total: number;
 }
 
