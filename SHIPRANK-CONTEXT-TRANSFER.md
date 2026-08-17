@@ -1,161 +1,145 @@
-# Your repo
-https://github.com/ujjwal03333/shiprank
+# SHIPRANK-CONTEXT-TRANSFER.md
+Compressed brain for the next AI. Read this first, then `CLAUDE.md`, then one spec.
+
+```
+Repo:     https://github.com/ujjwal03333/shiprank
+Local:    ~/Desktop/shiprank
+Branch:   main
+Commits:  9b37287 (pushed) — Dare, legal, archaeology, models
+          465ef41 (may still be local) — decisionContext field, lie-detector IDs, share tweet
+```
 
 # The CLAUDE.md in the repo root already has project context
 # Any AI tool that reads repo files will pick this up
 
-This file is the **session handoff**. `CLAUDE.md` is durable architecture and conventions. This file is current HEAD, uncommitted work, and what to do next. Do not treat this as a design spec — treat it as “where we left the tree.”
+---
 
-Local checkout: `/Users/ujjwalsingh/Desktop/shiprank`  
-Branch: `main` tracking `origin/main`  
-HEAD: `6a3b53f` — *Fix skip-link visibility: Tailwind v4 uses clip-path (not clip) for sr-only*  
-Last product dump on main: `2556ba4` — *WIP: UX quality pass phase 12.8, skip-link focus bug found*  
-Backup bundle (2026-08-14): `~/Desktop/shiprank-backups/shiprank-full-backup-20260814-163901.bundle`
+## What this product is
 
-`CLAUDE.md` and this file are both **untracked**. They have not been committed or pushed.
+ShipRank is a **finishing service for AI-built software**: compile a loose prompt, scan the tree with a deterministic check engine, rank on a leaderboard.
+
+Positioning: *Give me what your AI built. I'll give it back finished.*
+
+It is **not** Lovable (create the app) and **not** CodeRabbit (review the PR). It is a post-hoc judge + optional MCP verifier. That is a weaker default wedge than sitting in the editor or the PR. See competitive notes below.
 
 ---
 
-## How to resume (new AI)
+## What's built (evidence, not vibes)
 
-1. `cd /Users/ujjwalsingh/Desktop/shiprank`
-2. Read `CLAUDE.md` first (engine, scoring, station-name mapping, held-out rules).
-3. Then read this file.
-4. `git status` / `git diff` — everything below is still in the working tree.
-5. Do **not** commit unless the user asks. The tree is one unfinished quality pass, not a clean PR.
-6. Single check implementation lives in `@shiprank/engine`. Do not fork that logic into the web app or CLI.
+**Monorepo:** pnpm + Turborepo. `apps/web` (Next 16), `packages/engine`, `packages/cli` (`npx shiprank` npm v1.0.2), `packages/compile`, `packages/database`, `packages/mcp`, `packages/ui`.
 
-Suggested first command after reading:
+**Engine (one implementation of “what is a finding”):**
+- Implemented (`confidence > 0`): SEC-001–012, A11Y-001–006, PERF-001–006, SEO-001–008, QUAL-001–013.
+- Stubs (`confidence = 0`, still listed; they must **not** count as 100): ARCH, DATA, COMP, INFRA.
+- Held-out: `heldout.ts` (never score, never `/methodology`).
+- `CheckResult.decisionContext` attached in `runChecks` (`packages/engine/src/decision-context.ts`).
+- Self-scan of this repo: **99 / A+** (QUAL-009 still fails on CLI scanner/uploader awaits).
 
-```sh
+**Web:** `/` `/dare` `/dare/[jobId]` `/scan/[id]` `/leaderboard` `/models` `/methodology` `/pricing` `/dashboard` `/project/[id]/history` `/about` `/privacy` `/terms` `/verify/[scanId]` + 404/error. Cmd+K. Footer legal. Plan gating free/pro/monitor.
+
+**Dare (local, proven):**
+- `POST /api/dare` · `GET/POST /api/dare/[jobId]`
+- Worker: GitHub zipball → `/tmp` → engine **read-only** → ingest. Caps 50MB / 5000 files / 120s. Rate 3/IP/hour.
+- Job store: Postgres `scan_jobs` if migration applied, else `/tmp/shiprank-dare-jobs.json`.
+- Real run: `github.com/octocat/Hello-World` → **83/B**, landed on leaderboard, 4th request **429**.
+
+**Archaeology / Lie Detector:** scan page. Free locked. Claims map only to existing IDs (SEC-004/011, SEC-003/002, SEC-001/012, QUAL-001/012). Frequency only if genome n≥10.
+
+**Tests (last run):** engine 276 · web 149 · CLI 40 · compile 23 · MCP 5. Web typecheck clean.
+
+**Not built:** Intent station, Design station, Canvas (`/canvas/[scanId]`), 253-check catalog, live Vercel of this work, axe-core/Lighthouse orchestration.
+
+---
+
+## What's pending (manual — the door)
+
+These are **human** actions. Code cannot finish them:
+
+1. **`git push`** if `465ef41` is not on `origin/main`.
+2. **Connect GitHub `ujjwal03333/shiprank` to Vercel and deploy.** Last production deploy observed was ~13 days old. `https://shiprank-web-cqm7.vercel.app/dare` was **404**. A Redeploy without a new deployment of this repo does nothing.
+3. **Apply `00011_scan_jobs.sql`** in the ShipRank Supabase SQL editor (safe IF NOT EXISTS version is in the chat / migration file). Required on Vercel (multi-instance). File-backed jobs will not survive.
+4. **`SUPABASE_SERVICE_ROLE_KEY` = JWT only** (no trailing comment). User said local is fine; confirm Vercel env.
+5. Optional: `GITHUB_TOKEN`, real inbox instead of `hello@shiprank.dev`, Stripe keys or remove Pro CTA.
+6. **`shiprank.dev` is a different product** (“lines shipped”). Do not treat it as this app. CLI homepage still points at `shiprank-web-cqm7.vercel.app`; uploader default is `https://shiprank.dev/api/scan` — that mismatch is a landmine.
+
+Until 1–3 are done, only `localhost:3000` has Dare / Models / new legal pages.
+
+---
+
+## What's specified (files, do not re-invent)
+
+| File | Use when |
+|---|---|
+| `CLAUDE.md` | Any session — architecture, scoring, invariants |
+| `SHIPRANK-GATE-MASTER-PROMPT.md` | 15 stations, 253 checks, implement contract |
+| `SHIPRANK-UX-EXCELLENCE-PROMPT.md` | Every page, 4 states, motion, UX GATE |
+| `SHIPRANK-EVERYTHING-PROMPT.md` | 12 phases. Next code: Phase 5 (stop stub 100s) then 6 (real COMP/INFRA/DATA/ARCH) |
+| `SHIPRANK-UNICORN-PROMPT.md` | Dare harden, Archaeology, Models, Canvas spec |
+
+**Do not start 253 checks or Canvas before Phase 4–6.** Stubs scoring 100 is product fraud.
+
+---
+
+## Critical rules (break these and the product is fake)
+
+- One check suite: `@shiprank/engine`. CLI / MCP / web wrap it.
+- Checks are pure `(profile) => CheckResult`. Tests construct `CodeProfile` inline.
+- `confidence === 0` must not affect station or overall score.
+- Held-out checks never enter `runChecks`, never appear on `/methodology`.
+- Never flag `SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- Never invent AI-commit ratio or fail% without data.
+- Tokens only from `@shiprank/ui/tokens.css`.
+- Engine `quality` → DB `code_quality`; `infrastructure` → `infra`; `warning` → `medium`.
+- Show real command output. Do not call a GATE done from a summary.
+- Methodology IDs/titles must match the engine in the same PR.
+
+---
+
+## Competitive landscape (compressed)
+
+- **Lovable** ~$13.3B / ~$500M ARR — owns *create the app*. Can add “finish” as a feature.
+- **Cursor** — daily driver; habit + seats.
+- **CodeRabbit** $1.5B (Aug 2026) — owns *the PR*. $12–24/dev. 2M+ repos.
+- **Snyk / Semgrep** — CI budget already exists.
+- Also: Vibe App Scanner, agency “vibe audits.” Category is not empty.
+
+**Implication:** ShipRank does not become a unicorn by adding stations. It becomes useful if it is the **verifier in the agent loop** (MCP — already exists, underused) or a **gate a third party requires**. Dare/leaderboard is distribution after you have users, not before.
+
+---
+
+## How to resume (any tool)
+
+```
+cd ~/Desktop/shiprank
+Read CLAUDE.md
+Read SHIPRANK-CONTEXT-TRANSFER.md
+Then ONLY the spec for the job (table below).
 pnpm --filter @shiprank/engine test && pnpm --filter @shiprank/web test
 ```
 
-The new engine/web tests in this working tree have not been confirmed green in this session.
-
----
-
-## What is already on `main` (committed)
-
-Wave 1 through phase 12.8 is on `origin/main`:
-
-- Turborepo + warm-light tokens (`@shiprank/ui`)
-- Engine: profiler, 9-station check suite, fingerprint, remediation, AGENTS.md generator, held-out registry
-- CLI (`npx shiprank`), compile (`@shiprank/compile`), MCP (`@shiprank/mcp`)
-- Next.js app: marketing, scan report, leaderboard, pricing, methodology, dashboard, verify, history
-- APIs: scan upload, compile, Stripe checkout/webhook, badge, genome, monitor, cron rescan, account
-- Supabase migrations `00001`–`00010` (attestations, provenance, genome, subscriptions, monitoring, visibility, findings RLS)
-- Vercel config in `apps/web/vercel.json` (root directory = `apps/web`)
-- Skip-link focus fix for Tailwind v4 `sr-only` (`clip-path`, not `clip`)
-
-Implemented (confidence > 0) vs stub (confidence 0, excluded from scoring):
-
-| Station | Status on disk |
+| Job | File |
 |---|---|
-| security (SEC-) | implemented |
-| accessibility (A11Y-) | implemented |
-| performance (PERF-) | implemented |
-| growth (SEO-) | implemented |
-| quality (QUAL-) | implemented |
-| architecture (ARCH-) | **still stubs** |
-| data (DATA-) | **still stubs** |
-| compliance (COMP-) | **still stubs** |
-| infrastructure (INFRA-) | **still stubs** (WIP only extracted magic strings) |
+| Viral surfaces (Dare, Canvas, Archaeology) | `SHIPRANK-UNICORN-PROMPT.md` |
+| 253-check engine | `SHIPRANK-GATE-MASTER-PROMPT.md` |
+| UX 10/10 | `SHIPRANK-UX-EXCELLENCE-PROMPT.md` |
+| Full 12-phase build | `SHIPRANK-EVERYTHING-PROMPT.md` (start Phase 5 if door is open, else Phase 4) |
+
+**Claude Code:** open a session in `~/Desktop/shiprank`. `CLAUDE.md` loads automatically.
+
+**Verification standard:** run the command, paste the output. A spec without tests produces code that looks right and fails in production.
 
 ---
 
-## Uncommitted working tree (this is the live work)
-
-29 modified + 12 untracked. Theme: **false-positive reduction, fail-open APIs, loading UX, check prevalence.** Not a new feature wave.
-
-### Engine — check accuracy
-
-- `checks/security.ts` — SEC-001 skips `profile.testFiles` (fixtures with fake secrets are not leaks). Magic `fixTime` strings extracted.
-- `checks/quality.ts`
-  - QUAL-002: a missing *root* `tsconfig.json` is not a fail if a nested `tsconfig*.json` exists (monorepo).
-  - QUAL-009: ignore Next.js `page`/`layout` Server Components; count Supabase `{ error } = await …` + `if (error)` as handling.
-  - QUAL-010: magic numbers are per-file, not cross-repo; ignore Tailwind tokens, labeled object values, labeled strings; more HTTP status codes in the safe set.
-  - QUAL-011: function-start regex now sees TS-typed arrows and object-method shorthand (was inflating branches/fn).
-- `checks/growth.ts` — SEO-002 accepts Next.js `metadata` / `generateMetadata` + `openGraph: {…}` (title/description/images or `opengraph-image.*` file convention), not only raw `<meta property="og:…">`.
-- `checks/performance.ts` — PERF-002/005 skip test files; PERF-005 uses balanced-paren matching instead of a 400-char window.
-- `checks/profile.ts` — read known dotfiles (`.gitignore` etc.; `path.extname` is `""` for those). Concatenate duplicate config basenames instead of last-write-wins.
-- `checks/data.ts` / `infrastructure.ts` — stub bodies unchanged; magic time strings extracted to constants.
-- `fingerprint/model.ts` — `HIGH_CONFIDENCE_THRESHOLD = 80` named constant.
-
-New tests (untracked or extended):
-
-- `packages/engine/src/__tests__/checks-quality.test.ts` (extended)
-- `packages/engine/src/__tests__/checks-security.test.ts` (extended)
-- `packages/engine/src/__tests__/checks-growth.test.ts` **new**
-- `packages/engine/src/__tests__/checks-performance.test.ts` **new**
-- `packages/engine/src/__tests__/profile-builder.test.ts` **new**
-
-### Web — report + resilience
-
-- `lib/check-prevalence.ts` **new** — fail% per check_id from `check_genome_rows`, hidden until `n >= 10`.
-- `app/scan/[id]/page.tsx` — each failing finding shows “Fails in X% of scanned projects (n=…)”; share card now previews `/scan/[id]/opengraph-image`; scan URL input has `aria-label`.
-- `app/leaderboard/loading.tsx` + `app/scan/[id]/loading.tsx` **new** — skeleton screens.
-- Fail-open:
-  - `api/account` — DB errors return the free-plan shape, never 500.
-  - `api/badge/[scanId]` — catch → grey unknown badge, 500 + short cache.
-  - `api/scan/[id]` — plan resolution failure → gate as `free` (redacted findings), still 200.
-- `lib/format-names.ts` — `timeAgo` uses named second/minute/hour constants.
-- `lib/monitoring.ts` — `ONE_DAY_MS`.
-- Small a11y / QUAL-010 cleanups: `command-card`, `hero-command`, `leaderboard-table`, `page-loading-bar`, `score-gauge`, `site-nav`, `theme-toggle`, `layout`, `pricing`, `terms`.
-
-New web tests (untracked):
-
-- `lib/__tests__/check-prevalence.test.ts`
-- `lib/__tests__/format-names.test.ts`
-- `lib/__tests__/grade.test.ts`
-- `lib/__tests__/provenance.test.ts`
-- `lib/__tests__/scan-findings.test.ts`
-
-### CLI / compile
-
-- `packages/cli/src/bin.ts` — `main` split into `runCompileCommand` / `runScanCommand` (complexity / QUAL-011).
-- `packages/compile/src/rate-limiter.ts` — Upstash import or `limit()` failure **fails open** (allow the request) rather than taking down compile.
-- `packages/compile/src/prompt-score.ts` — `MAX_POINTS_PER_DIMENSION = 20`.
-
----
-
-## Known gaps / next work
-
-Do these in order unless the user redirects:
-
-1. **Verify the working tree.** Run engine + web tests. Fix anything the new QUAL/SEO/PERF/SEC cases broke. Do not “simplify” the new heuristics without re-reading the comments — each one is a documented false-positive fix.
-2. **Commit the quality pass** (if the user wants it) as one or two commits: engine+tests, then web/CLI/compile. Include `CLAUDE.md` only if they want durable AI context on GitHub.
-3. **Implement stub stations** (ARCH / DATA / COMP / INFRA). Follow the `pass`/`fail`/`stub` pattern in `security.ts` / `quality.ts`. `confidence > 0` only when the heuristic is real. Update `/methodology` in the same change — that page is the public contract and already drifts (e.g. methodology lists SEO-001 as “title + meta description”; the engine’s SEO-001 is “Favicon present”).
-4. **Do not** document held-out patterns on `/methodology` or in user-facing copy. `packages/engine/src/checks/heldout.ts` is scored nowhere and must stay that way.
-5. Product leftovers after stubs: methodology drift pass, confirm Vercel + Stripe + cron against `.env.example`, consider implementing remaining INFRA/DATA checks that would score this repo itself.
-
----
-
-## Invariants (repeat from CLAUDE.md — do not violate)
-
-- One check suite: `@shiprank/engine`. CLI / MCP / web only wrap it.
-- Engine station `quality` → DB `code_quality`. Engine `infrastructure` → DB `infra`. Map is `apps/web/lib/scan-ingester.ts` `STATION_MAP`.
-- Engine severity `warning` → DB `medium`.
-- `confidence === 0` → stub, not scored.
-- Held-out checks never enter `runChecks` and never appear on `/methodology`.
-- `SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public. Never flag them as secrets (SEC-001).
-- Tokens only from `@shiprank/ui/tokens.css`. No hardcoded hex in components.
-- Never invent an AI-commit ratio when `gitCommits` is null.
-- No real secrets in git. `.env.example` is the template.
-
----
-
-## Prompt to paste into the next tool
+## First message to paste into the next tool
 
 ```
-Continue ShipRank from the local checkout at /Users/ujjwalsingh/Desktop/shiprank
-(repo: https://github.com/ujjwal03333/shiprank).
+Continue ShipRank from ~/Desktop/shiprank
+(repo https://github.com/ujjwal03333/shiprank).
 
-Read CLAUDE.md, then SHIPRANK-CONTEXT-TRANSFER.md. The working tree is an
-uncommitted quality pass on top of 6a3b53f — do not discard it.
+Read CLAUDE.md, then SHIPRANK-CONTEXT-TRANSFER.md.
+Do not rebuild Wave 1. Do not score stub stations as 100.
+If production isn't deployed, say so — don't pretend shiprank.dev is this app.
 
-First run the engine and web test suites. Then either (a) finish/commit
-that pass if I ask, or (b) start implementing the stub stations
-(architecture, data, compliance, infrastructure) using the existing
-pass/fail/stub pattern.
+Ask which spec to execute, or start EVERYTHING Phase 4/5.
+Show real test/scan/HTTP output at every gate.
 ```
