@@ -14,6 +14,22 @@
  */
 export type Provenance = "seed" | "self-reported" | "verified";
 
+/**
+ * Seed rows are local fixtures. They must never appear as public Cards,
+ * Board ranks, model stats, or Memory samples.
+ */
+export function isPublicBoardProvenance(
+  provenance: Provenance | string | null | undefined,
+): boolean {
+  return provenance !== "seed";
+}
+
+export function publicBoardEntries<
+  T extends { provenance?: Provenance | string | null },
+>(rows: T[]): T[] {
+  return rows.filter((row) => isPublicBoardProvenance(row.provenance ?? null));
+}
+
 export const SYBIL_MIN_FILES = 5;
 export const SYBIL_MIN_LINES = 200;
 

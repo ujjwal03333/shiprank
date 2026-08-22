@@ -29,12 +29,12 @@ export default async function VerifyPage({
   const { data: scan } = await db
     .from("scans")
     .select(
-      "id, content_hash, score, grade, attestation_signature, metadata, created_at, completed_at, projects(name)",
+      "id, content_hash, score, grade, provenance, attestation_signature, metadata, created_at, completed_at, projects(name)",
     )
     .eq("id", scanId)
     .maybeSingle();
 
-  if (!scan) {
+  if (!scan || (scan as { provenance?: string }).provenance === "seed") {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 text-center">

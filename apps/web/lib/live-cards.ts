@@ -18,8 +18,9 @@ export async function getLiveCards(limit = 3): Promise<LiveCard[]> {
     const db = getServiceClient();
     const { data, error } = await db
       .from("leaderboard_entries")
-      .select("scan_id, project_name, score, grade, platform, scanned_at")
+      .select("scan_id, project_name, score, grade, platform, scanned_at, provenance")
       .not("scan_id", "is", null)
+      .neq("provenance", "seed")
       .order("scanned_at", { ascending: false })
       .limit(limit);
 

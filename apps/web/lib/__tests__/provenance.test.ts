@@ -4,6 +4,8 @@ import {
   sybilExclusionReason,
   isAggregateEligible,
   classifyProvenance,
+  isPublicBoardProvenance,
+  publicBoardEntries,
   SYBIL_MIN_FILES,
   SYBIL_MIN_LINES,
 } from "../provenance";
@@ -85,6 +87,24 @@ describe("isAggregateEligible", () => {
   it("rejects duplicate content hash", () => {
     const seen = new Set(["abc123"]);
     expect(isAggregateEligible({ ...base, seenHashes: seen })).toBe(false);
+  });
+});
+
+describe("isPublicBoardProvenance", () => {
+  it("hides seed fixtures from public surfaces", () => {
+    expect(isPublicBoardProvenance("seed")).toBe(false);
+    expect(isPublicBoardProvenance("verified")).toBe(true);
+    expect(isPublicBoardProvenance("self-reported")).toBe(true);
+    expect(isPublicBoardProvenance(null)).toBe(true);
+  });
+
+  it("strips seed rows from a public list", () => {
+    const rows = publicBoardEntries([
+      { provenance: "seed" as const, name: "DevDash" },
+      { provenance: "verified" as const, name: "aicommits" },
+      { provenance: "self-reported" as const, name: "local" },
+    ]);
+    expect(rows.map((r) => r.name)).toEqual(["aicommits", "local"]);
   });
 });
 

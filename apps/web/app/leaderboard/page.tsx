@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { formatPlatformName } from "@/lib/format-names";
+import { publicBoardEntries } from "@/lib/provenance";
 import { LeaderboardTable } from "../components/leaderboard-table";
 
 export const metadata: Metadata = {
@@ -183,7 +184,9 @@ export default async function LeaderboardPage() {
     raw = base.data;
   }
 
-  const entries = (raw ?? []) as unknown as LeaderboardEntry[];
+  const entries = publicBoardEntries(
+    (raw ?? []) as unknown as LeaderboardEntry[],
+  );
 
   const byPlatform: Record<string, { total: number; count: number }> = {};
   const byFramework: Record<string, { total: number; count: number }> = {};

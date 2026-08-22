@@ -14,7 +14,8 @@ async function getScanCount(): Promise<number | null> {
     const db = getServiceClient();
     const { count } = await db
       .from("leaderboard_entries")
-      .select("scan_id", { count: "exact", head: true });
+      .select("scan_id", { count: "exact", head: true })
+      .neq("provenance", "seed");
     return count ?? 0;
   } catch {
     return null;

@@ -387,7 +387,7 @@ export default async function ScanPage({
   const { data: scan, error } = await db
     .from("scans")
     .select(
-      `id, status, score, grade, station_count, scan_mode, started_at, completed_at,
+      `id, status, score, grade, provenance, station_count, scan_mode, started_at, completed_at,
        projects ( id, name, framework, platform, url, repo_url, metadata ),
        station_results ( id, station, score, grade, pass_count, warn_count, fail_count ),
        fingerprints ( platform, confidence, signals, metadata )`,
@@ -395,7 +395,7 @@ export default async function ScanPage({
     .eq("id", id)
     .single();
 
-  if (error || !scan) {
+  if (error || !scan || (scan as { provenance?: string }).provenance === "seed") {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-6 px-6 py-24 text-center">
         <span className="grid size-14 place-items-center rounded-full bg-warning-soft">

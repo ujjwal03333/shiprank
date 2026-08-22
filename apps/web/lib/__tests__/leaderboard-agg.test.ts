@@ -97,3 +97,17 @@ describe("aggregateLeaderboard — provenance filter", () => {
     expect(result.entries[0]!.provenance).toBe("verified");
   });
 });
+
+describe("public Board default", () => {
+  it("still returns seed in raw entries so the API can strip them", async () => {
+    const { publicBoardEntries } = await import("../provenance");
+    const result = aggregateLeaderboard([
+      row({ provenance: "seed", projectName: "DevDash" }),
+      row({ provenance: "verified", projectName: "aicommits" }),
+    ]);
+    expect(result.entries).toHaveLength(2);
+    expect(publicBoardEntries(result.entries).map((e) => e.projectName)).toEqual([
+      "aicommits",
+    ]);
+  });
+});

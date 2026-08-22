@@ -1,6 +1,7 @@
--- ShipRank seed data
--- Inserts 3 sample projects, 3 scans, station results, and check results.
--- The leaderboard trigger fires automatically when a scan status is set to 'completed'.
+-- ShipRank LOCAL seed data only.
+-- Never apply this file to production. Fabricated rows (SaaSly, BudgetBro,
+-- DevDash) are fixtures for local UI/tests — they are not real scans and
+-- must not appear on the public Board, Cards, or model rankings.
 
 -- ============================================================
 -- PROJECTS

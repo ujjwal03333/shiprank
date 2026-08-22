@@ -80,7 +80,8 @@ export async function GET(request: Request) {
     const { count: totalScans } = await db
       .from("scans")
       .select("id", { count: "exact", head: true })
-      .eq("status", "completed");
+      .eq("status", "completed")
+      .neq("provenance", "seed");
 
     if (!totalScans || totalScans < MIN_SAMPLE_SCANS) {
       return NextResponse.json({ text: fallback, source: "default", totalScans: totalScans ?? 0 });
@@ -90,7 +91,8 @@ export async function GET(request: Request) {
       .from("check_results")
       .select("check_id, passed, fix_suggestion, station_results!inner(scans!inner(status))")
       .in("check_id", relevantIds)
-      .eq("station_results.scans.status", "completed");
+      .eq("station_results.scans.status", "completed")
+      .neq("station_results.scans.provenance", "seed");
 
     if (error || !rows) {
       return NextResponse.json({ text: fallback, source: "default" });

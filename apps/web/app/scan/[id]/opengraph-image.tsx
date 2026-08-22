@@ -23,10 +23,10 @@ export default async function Image({
       const db = getServiceClient();
       const { data } = await db
         .from("scans")
-        .select("score, grade, projects ( name, platform, framework )")
+        .select("score, grade, provenance, projects ( name, platform, framework )")
         .eq("id", id)
         .single();
-      if (data) {
+      if (data && data["provenance"] !== "seed") {
         score = (data["score"] as number) ?? 0;
         grade = (data["grade"] as string) ?? "F";
         const proj = data["projects"] as {

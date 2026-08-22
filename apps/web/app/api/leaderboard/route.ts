@@ -4,7 +4,7 @@ import {
   aggregateLeaderboard,
   type LeaderboardRow,
 } from "@/lib/leaderboard-agg";
-import type { Provenance } from "@/lib/provenance";
+import { publicBoardEntries, type Provenance } from "@/lib/provenance";
 
 const CACHE_TTL_SECONDS = 60;
 
@@ -112,6 +112,9 @@ export async function GET(request: Request) {
   try {
     const { rows, fromCache } = await getRows();
     const result = aggregateLeaderboard(rows, { provenanceFilter });
+    if (!provenanceFilter) {
+      result.entries = publicBoardEntries(result.entries);
+    }
     return NextResponse.json(result, {
       headers: {
         "Cache-Control": `public, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30`,

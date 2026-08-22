@@ -27,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from("scans")
       .select("id, updated_at")
       .eq("status", "completed")
+      .neq("provenance", "seed")
       .order("updated_at", { ascending: false })
       .limit(1000);
 

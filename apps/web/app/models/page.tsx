@@ -26,7 +26,8 @@ export default async function ModelsPage() {
   const db = getServiceClient();
   const { data } = await db
     .from("leaderboard_entries")
-    .select("scan_id, score, station_scores, project_id");
+    .select("scan_id, score, station_scores, project_id, provenance")
+    .neq("provenance", "seed");
 
   const entries = (data ?? []) as Array<{
     scan_id: string;

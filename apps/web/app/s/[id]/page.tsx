@@ -16,11 +16,12 @@ async function loadCard(id: string) {
   const { data } = await db
     .from("scans")
     .select(
-      "id, score, grade, projects ( name, framework, platform, metadata )",
+      "id, score, grade, provenance, projects ( name, framework, platform, metadata )",
     )
     .eq("id", id)
     .single();
   if (!data) return null;
+  if (data["provenance"] === "seed") return null;
   const project = data["projects"] as {
     name?: string;
     framework?: string | null;
