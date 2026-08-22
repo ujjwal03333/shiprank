@@ -133,6 +133,10 @@ export async function updateDareJob(id: string, patch: DareJobPatch): Promise<vo
     const db = getServiceClient();
     const { error } = await db.from("scan_jobs").update(patch).eq("id", id);
     if (!error) return;
+    console.error("scan_jobs update failed:", error.message);
+    if (onVercel()) {
+      throw new Error(`scan_jobs update failed: ${error.message}`);
+    }
   }
   const all = readLocal();
   const cur = all[id];

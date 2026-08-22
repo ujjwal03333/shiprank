@@ -219,18 +219,11 @@ export async function processDareJob(jobId: string): Promise<void> {
       platform: fingerprint.platform.platform,
     };
 
-    // Finish the job first so a hung ingest cannot leave the UI on
-    // "Computing score..." after Vercel kills the function at 60s.
-    await updateDareJob(jobId, {
-      status: "complete",
-      progress_stage: "Done",
-      scan_id: null,
-      completed_at: new Date().toISOString(),
-      progress,
-    });
-
     let scanId: string | null = null;
-    if (isSupabaseConfigured()) {
+    let ingestError: string | null = null;
+    if (!isSupabaseConfigured()) {
+      ingestError = "Supabase not configured for ingest.";
+    } else {
       try {
         const ingested = await Promise.race([
           ingestUpload(
@@ -254,18 +247,25 @@ export async function processDareJob(jobId: string): Promise<void> {
             { forceNew: true, source: "dare" },
           ),
           new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error("Leaderboard ingest timed out")), 12_000);
+            setTimeout(() => reject(new Error("Leaderboard ingest timed out")), 20_000);
           }),
         ]);
         scanId = ingested.scanId;
-        await updateDareJob(jobId, { scan_id: scanId, progress });
       } catch (err) {
-        const message =
+        ingestError =
           err instanceof Error ? err.message : "Leaderboard ingest failed.";
-        console.error("Dare ingest failed:", message);
-        await updateDareJob(jobId, { error_message: message, progress });
+        console.error("Dare ingest failed:", ingestError);
       }
     }
+
+    await updateDareJob(jobId, {
+      status: "complete",
+      progress_stage: "Done",
+      scan_id: scanId,
+      error_message: ingestError,
+      completed_at: new Date().toISOString(),
+      progress,
+    });
   } catch (err) {
     const message =
       err instanceof Error
