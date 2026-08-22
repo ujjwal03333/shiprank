@@ -41,6 +41,7 @@ function writeLocal(all: Record<string, DareJob>): void {
 }
 
 let supabaseOk: boolean | null = null;
+let supabaseProbeError: string | null = null;
 
 function onVercel(): boolean {
   return process.env["VERCEL"] === "1";
@@ -50,23 +51,31 @@ export async function supabaseAvailable(): Promise<boolean> {
   if (supabaseOk != null) return supabaseOk;
   if (!isSupabaseConfigured()) {
     supabaseOk = false;
+    supabaseProbeError = "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing";
     return false;
   }
   try {
     const db = getServiceClient();
     const { error } = await db.from("scan_jobs").select("id").limit(1);
     if (error) {
+      supabaseProbeError = error.message;
       console.error("scan_jobs probe failed:", error.message);
       supabaseOk = false;
       return false;
     }
     supabaseOk = true;
+    supabaseProbeError = null;
     return true;
   } catch (err) {
+    supabaseProbeError = err instanceof Error ? err.message : String(err);
     console.error("scan_jobs probe threw:", err);
     supabaseOk = false;
     return false;
   }
+}
+
+export function getSupabaseProbeError(): string | null {
+  return supabaseProbeError;
 }
 
 export async function createDareJob(repoUrl: string): Promise<DareJob> {

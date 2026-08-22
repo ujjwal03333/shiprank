@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { supabaseAvailable } from "@/lib/dare-store";
+import { getSupabaseProbeError, supabaseAvailable } from "@/lib/dare-store";
 import {
   CONTROLLED_HOST,
   isForeignShiprankHost,
@@ -19,6 +19,7 @@ export async function GET() {
     ok: true,
     supabase: isSupabaseConfigured(),
     scanJobs,
+    scanJobsError: getSupabaseProbeError(),
     origin,
     originSafe: !isForeignShiprankHost(origin) && !rawIsForeign,
     rawAppUrl,
