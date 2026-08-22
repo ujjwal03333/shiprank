@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabaseHost } from "@/lib/supabase";
 import { getSupabaseProbeError, supabaseAvailable } from "@/lib/dare-store";
 import {
   CONTROLLED_HOST,
@@ -18,6 +18,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     supabase: isSupabaseConfigured(),
+    supabaseHost: supabaseHost(),
     scanJobs,
     scanJobsError: getSupabaseProbeError(),
     origin,

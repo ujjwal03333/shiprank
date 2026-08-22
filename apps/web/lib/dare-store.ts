@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getServiceClient, isSupabaseConfigured } from "./supabase";
+import { getServiceClient, isSupabaseConfigured, supabaseHost } from "./supabase";
 import type { DareJobStatus, DareProgress } from "./dare-worker";
 
 export interface DareJob {
@@ -58,7 +58,7 @@ export async function supabaseAvailable(): Promise<boolean> {
     const db = getServiceClient();
     const { error } = await db.from("scan_jobs").select("id").limit(1);
     if (error) {
-      supabaseProbeError = error.message;
+      supabaseProbeError = `${error.message} (host=${supabaseHost() ?? "none"})`;
       console.error("scan_jobs probe failed:", error.message);
       supabaseOk = false;
       return false;
