@@ -24,7 +24,7 @@ export async function POST(
   const job = await getDareJob(jobId);
   if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
   if (job.status === "queued") {
-    void processDareJob(jobId);
+    await processDareJob(jobId);
   }
   return NextResponse.json({ started: job.status === "queued" });
 }

@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -77,9 +76,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 503 });
   }
 
-  after(() => {
-    void processDareJob(job.id);
-  });
+  // Await on the request (maxDuration 60). Vercel Hobby `after()` is too
+  // short to finish clone + scan + ingest, which left scan_id null.
+  await processDareJob(job.id);
 
   return NextResponse.json(
     { jobId: job.id, repo: repo.url },
