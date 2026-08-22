@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   gradeStroke,
   gradeBadgeClass,
+  gradeLetterClass,
+  cardLine,
   verdictFor,
   STATION_LABEL,
   STATION_DESCRIPTION,
@@ -9,22 +11,22 @@ import {
 } from "../grade";
 
 describe("gradeStroke", () => {
-  it("returns green for A+ and A", () => {
-    expect(gradeStroke("A+")).toBe("#3f7d52");
-    expect(gradeStroke("A")).toBe("#3f7d52");
+  it("returns voltage gold for A+ and A", () => {
+    expect(gradeStroke("A+")).toBe("#E8C547");
+    expect(gradeStroke("A")).toBe("#E8C547");
   });
 
-  it("returns teal for B", () => {
-    expect(gradeStroke("B")).toBe("#3d6e8c");
+  it("returns steel for B", () => {
+    expect(gradeStroke("B")).toBe("#8FBFCC");
   });
 
-  it("returns amber for C", () => {
-    expect(gradeStroke("C")).toBe("#c08a1e");
+  it("returns signal amber for C", () => {
+    expect(gradeStroke("C")).toBe("#F0A03A");
   });
 
-  it("returns red for D and F", () => {
-    expect(gradeStroke("D")).toBe("#b23b3b");
-    expect(gradeStroke("F")).toBe("#b23b3b");
+  it("returns rust for D and blood for F", () => {
+    expect(gradeStroke("D")).toBe("#E06040");
+    expect(gradeStroke("F")).toBe("#FF4D4D");
   });
 });
 
@@ -45,6 +47,26 @@ describe("gradeBadgeClass", () => {
   it("returns danger classes for D/F", () => {
     expect(gradeBadgeClass("D")).toBe("bg-danger-soft text-danger-ink");
     expect(gradeBadgeClass("F")).toBe("bg-danger-soft text-danger-ink");
+  });
+});
+
+describe("gradeLetterClass", () => {
+  it("maps each grade to the Night Court token class", () => {
+    expect(gradeLetterClass("A")).toBe("text-grade-a");
+    expect(gradeLetterClass("B")).toBe("text-grade-b");
+    expect(gradeLetterClass("C")).toBe("text-grade-c");
+    expect(gradeLetterClass("D")).toBe("text-grade-d");
+    expect(gradeLetterClass("F")).toBe("text-grade-f");
+  });
+});
+
+describe("cardLine", () => {
+  it("uses the locked verdict voice", () => {
+    expect(cardLine(99)).toBe("Exceptional.");
+    expect(cardLine(85)).toBe("Ready to ship.");
+    expect(cardLine(70)).toBe("Almost.");
+    expect(cardLine(55)).toBe("Not shippable yet.");
+    expect(cardLine(12)).toBe("Do not ship.");
   });
 });
 

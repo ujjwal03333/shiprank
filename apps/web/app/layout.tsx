@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-import { SiteNav } from "./components/site-nav";
-import { PageLoadingBar } from "./components/page-loading-bar";
-import { CommandPalette } from "./components/command-palette";
+import { SiteChrome } from "./components/site-chrome";
+import { publicAppUrl } from "@/lib/public-url";
 
 const fontDisplay = Fraunces({
   variable: "--font-display-family",
@@ -12,9 +11,10 @@ const fontDisplay = Fraunces({
   display: "swap",
 });
 
-const fontBody = Inter({
+const fontBody = IBM_Plex_Sans({
   variable: "--font-body-family",
   subsets: ["latin"],
+  weight: ["400", "500"],
   display: "swap",
 });
 
@@ -27,22 +27,15 @@ const fontMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: { default: "ShipRank", template: "%s · ShipRank" },
-  description:
-    "The finishing service for AI-built software. Compile, scan, and rank AI-generated projects.",
-  metadataBase: new URL(
-    process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank.dev",
-  ),
+  description: "Don't ship AI-built software without a ShipRank. The license to ship.",
+  metadataBase: new URL(publicAppUrl()),
   keywords: [
-    "AI code quality",
-    "code scanning",
+    "Ship License",
     "AI-built software",
-    "code grading",
-    "software quality",
     "ShipRank",
-    "compile",
-    "accessibility",
-    "security",
-    "performance",
+    "Dare",
+    "code grade",
+    "vibe coding",
   ],
   robots: { index: true, follow: true },
   openGraph: {
@@ -61,13 +54,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable} h-full`}
+      data-theme="dark"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("shiprank-theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t)}else if(matchMedia("(prefers-color-scheme:dark)").matches){document.documentElement.setAttribute("data-theme","dark")}}catch(e){void 0}})()`,
+            __html: `(function(){try{var t=localStorage.getItem("shiprank-theme");if(t==="light"){document.documentElement.setAttribute("data-theme","light")}else{document.documentElement.setAttribute("data-theme","dark")}}catch(e){document.documentElement.setAttribute("data-theme","dark")}})()`,
           }}
         />
       </head>
@@ -78,90 +72,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <PageLoadingBar />
-        <CommandPalette />
-        <SiteNav />
-        <main id="main-content" className="flex-1">{children}</main>
-        <footer className="border-t border-border bg-surface/40">
-          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 sm:grid-cols-[1.5fr_1fr_1fr_1fr]">
-            <div className="flex flex-col gap-3">
-              <span className="font-display text-lg text-ink">ShipRank</span>
-              <p className="max-w-xs font-body text-sm leading-relaxed text-ink-muted">
-                Making AI-generated code safe for production. Compile, scan,
-                rank — ship something you&apos;re proud of.
-              </p>
-            </div>
-            <nav aria-label="Product" className="flex flex-col gap-2.5">
-              <span className="font-mono text-xs uppercase tracking-widest text-ink-subtle">
-                Product
-              </span>
-              <a href="/dare" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Dare
-              </a>
-              <a href="/leaderboard" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Leaderboard
-              </a>
-              <a href="/models" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Models
-              </a>
-              <a href="/methodology" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Methodology
-              </a>
-              <a href="/pricing" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Pricing
-              </a>
-            </nav>
-            <nav aria-label="Tools" className="flex flex-col gap-2.5">
-              <span className="font-mono text-xs uppercase tracking-widest text-ink-subtle">
-                Tools
-              </span>
-              <a href="https://www.npmjs.com/package/shiprank" target="_blank" rel="noopener noreferrer" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                CLI on npm
-              </a>
-              <a href="/dashboard" className="font-body text-sm text-ink-muted transition-colors hover:text-ink">
-                Dashboard
-              </a>
-              <code className="font-mono text-xs text-ink-subtle">
-                npx shiprank ./your-project
-              </code>
-            </nav>
-            <nav aria-label="API" className="flex flex-col gap-2.5">
-              <span className="font-mono text-xs uppercase tracking-widest text-ink-subtle">
-                API
-              </span>
-              <span className="font-mono text-xs text-ink-subtle">/api/scan/[id]</span>
-              <span className="font-mono text-xs text-ink-subtle">/api/verify/[id]</span>
-              <span className="font-mono text-xs text-ink-subtle">/api/leaderboard</span>
-            </nav>
-          </div>
-          <div className="border-t border-border/60">
-            <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <span className="font-mono text-xs text-ink-subtle">
-                © {new Date().getFullYear()} ShipRank
-              </span>
-              <nav aria-label="Legal" className="flex flex-wrap items-center gap-4">
-                <a href="/about" className="font-mono text-xs text-ink-subtle transition-colors hover:text-ink">
-                  About
-                </a>
-                <a href="/privacy" className="font-mono text-xs text-ink-subtle transition-colors hover:text-ink">
-                  Privacy
-                </a>
-                <a href="/terms" className="font-mono text-xs text-ink-subtle transition-colors hover:text-ink">
-                  Terms
-                </a>
-                <a href="/methodology" className="font-mono text-xs text-ink-subtle transition-colors hover:text-ink">
-                  Methodology
-                </a>
-                <a href="/methodology" className="font-mono text-xs text-ink-subtle transition-colors hover:text-ink">
-                  How we score
-                </a>
-              </nav>
-              <span className="font-mono text-xs text-ink-subtle">
-                Next.js · Supabase · pnpm · scores are deterministic
-              </span>
-            </div>
-          </div>
-        </footer>
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

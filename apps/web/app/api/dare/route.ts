@@ -12,6 +12,7 @@ import {
 } from "@/lib/github-repo";
 import { processDareJob } from "@/lib/dare-worker";
 import { createDareJob } from "@/lib/dare-store";
+import { dareRateLimitBypassed } from "@/lib/seed-guard";
 
 const BodySchema = z.object({
   repoUrl: z.string().min(3).max(300),
@@ -39,7 +40,10 @@ export async function POST(request: Request) {
   }
 
   const ip = ipFromRequest(request);
-  const rl = await checkRateLimit(`dare:${ip}`, 3, 3600);
+  const bypass = dareRateLimitBypassed(request);
+  const rl = bypass
+    ? { allowed: true, remaining: 99, resetAt: Date.now() + 3600_000 }
+    : await checkRateLimit(`dare:${ip}`, 3, 3600);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Three dares per hour per IP." },

@@ -1,18 +1,14 @@
 /**
- * shields.io-style SVG badge, warm ShipRank palette.
+ * shields.io-style SVG badge, Night Court palette.
  * Pure + deterministic so it can be unit-tested and cached hard.
  *
  *   [ ShipRank | 86 A ]
- *
- * Grade colors: A → green, B → teal, C → amber, D/F → red.
  */
 
+import { NIGHT, gradeHex } from "./night-court";
+
 function gradeColor(grade: string): string {
-  const g = grade.toUpperCase();
-  if (g === "A+" || g === "A") return "#3f7d52"; // success green
-  if (g === "B") return "#3d6e8c"; // info teal
-  if (g === "C") return "#c08a1e"; // warning amber
-  return "#b23b3b"; // danger red (D / F)
+  return gradeHex(grade);
 }
 
 function escapeXml(s: string): string {
@@ -41,7 +37,7 @@ export function renderBadgeSvg({
 }: BadgeOptions): string {
   const value =
     score != null && grade != null ? `${score} ${grade}` : "unknown";
-  const color = grade != null ? gradeColor(grade) : "#8f8676";
+  const color = grade != null ? gradeColor(grade) : NIGHT.subtle;
 
   const labelText = escapeXml(label);
   const valueText = escapeXml(value);
@@ -51,7 +47,7 @@ export function renderBadgeSvg({
   const total = leftW + rightW;
   const height = 20;
 
-  const labelBg = "#2b2419"; // warm ink
+  const labelBg = NIGHT.canvas;
   const labelMid = leftW / 2;
   const valueMid = leftW + rightW / 2;
 
@@ -67,7 +63,7 @@ export function renderBadgeSvg({
     <rect x="${leftW}" width="${rightW}" height="${height}" fill="${color}"/>
     <rect width="${total}" height="${height}" fill="url(#s)"/>
   </g>
-  <g fill="#fbf7f1" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" text-anchor="middle">
+  <g fill="${NIGHT.ink}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" text-anchor="middle">
     <text x="${labelMid}" y="14">${labelText}</text>
     <text x="${valueMid}" y="14" font-weight="600">${valueText}</text>
   </g>

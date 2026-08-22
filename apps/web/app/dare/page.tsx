@@ -3,28 +3,22 @@ import { DareForm } from "./dare-form";
 
 export const metadata: Metadata = {
   title: "Dare",
-  description: "Paste a public GitHub URL. ShipRank scans it and ranks the result.",
+  description: "Paste a public GitHub URL. The grade goes on the board.",
   alternates: { canonical: "/dare" },
 };
 
 export default function DarePage() {
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-center gap-8 px-6 py-24 text-center">
-      <div>
-        <span className="font-mono text-xs uppercase tracking-widest text-brand">
-          Dare Board
+    <div className="night-court flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="flex w-full max-w-lg flex-col items-center gap-8">
+        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
+          DARE
         </span>
-        <h1 className="mt-3 font-display text-4xl text-ink">Dare a public repo</h1>
-        <p className="mt-3 font-body text-base leading-relaxed text-ink-muted">
-          Paste any public GitHub URL. We clone it, run static analysis only
-          (never execute the code), and put the score on the public
-          leaderboard in about a minute.
+        <DareForm />
+        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink-subtle">
+          Public · read-only · on the board
         </p>
       </div>
-      <DareForm />
-      <p className="font-mono text-xs text-ink-subtle">
-        Results appear on the public leaderboard.
-      </p>
     </div>
   );
 }

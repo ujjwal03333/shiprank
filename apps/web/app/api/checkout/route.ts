@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getStripeClient, isStripeConfigured } from "@/lib/stripe";
 import { buildCheckoutSessionParams } from "@/lib/checkout";
+import { publicAppUrl } from "@/lib/public-url";
 
 const BodySchema = z.object({
   plan: z.enum(["pro", "monitor"]),
   email: z.string().email(),
 });
 
-const APP_URL = () => process.env["NEXT_PUBLIC_APP_URL"] ?? "http://localhost:3000";
+const APP_URL = () => publicAppUrl();
 
 /**
  * POST /api/checkout — accepts a plain HTML <form> POST (application/x-www

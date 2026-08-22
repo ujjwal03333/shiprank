@@ -159,7 +159,8 @@ describe("generateAgentsMd — fingerprint section", () => {
       makeStationScores(),
       makeFingerprint({ model: { model: null, confidence: 0, reasoning: "" } }),
     );
-    expect(md).toContain("shiprank.dev");
+    expect(md).toContain("correct us on the next scan");
+    expect(md).not.toContain("shiprank.dev");
   });
 });
 

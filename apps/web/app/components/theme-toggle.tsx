@@ -20,7 +20,7 @@ function applyTheme(theme: Theme) {
 function readStoredTheme(): Theme {
   const raw = localStorage.getItem("shiprank-theme");
   if (raw === "light" || raw === "dark" || raw === "system") return raw;
-  return "system";
+  return "dark";
 }
 
 export function ThemeToggle() {
@@ -44,8 +44,8 @@ export function ThemeToggle() {
   }, []);
 
   function cycle() {
-    const order: Theme[] = ["light", "dark", "system"];
-    const current = theme ?? "system";
+    const order: Theme[] = ["dark", "light", "system"];
+    const current = theme ?? "dark";
     const next = order[(order.indexOf(current) + 1) % order.length]!;
     setTheme(next);
     localStorage.setItem("shiprank-theme", next);

@@ -124,7 +124,7 @@ function EmptyState() {
     <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-border-strong bg-surface/60 p-16 text-center">
       <p className="font-display text-2xl text-ink">The board is open</p>
       <p className="mx-auto max-w-sm font-body text-sm leading-relaxed text-ink-muted">
-        The leaderboard is empty. Be the first to dare a repo →
+        The board is empty. Be the first dare.
       </p>
       <Link
         href="/dare"

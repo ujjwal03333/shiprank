@@ -46,7 +46,7 @@ export function SampleReport() {
           <span className="size-2.5 rounded-full bg-success/40" />
         </div>
         <span className="font-mono text-xs text-ink-subtle">
-          shiprank.dev/scan/8f2e…c41a
+          /s/8f2e…c41a
         </span>
         <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-mono text-[11px] text-brand-ink">
           sample

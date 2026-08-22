@@ -60,7 +60,7 @@ These are **human** actions. Code cannot finish them:
 3. **Apply `00011_scan_jobs.sql`** in the ShipRank Supabase SQL editor (safe IF NOT EXISTS version is in the chat / migration file). Required on Vercel (multi-instance). File-backed jobs will not survive.
 4. **`SUPABASE_SERVICE_ROLE_KEY` = JWT only** (no trailing comment). User said local is fine; confirm Vercel env.
 5. Optional: `GITHUB_TOKEN`, real inbox instead of `hello@shiprank.dev`, Stripe keys or remove Pro CTA.
-6. **`shiprank.dev` is a different product** (“lines shipped”). Do not treat it as this app. CLI homepage still points at `shiprank-web-cqm7.vercel.app`; uploader default is `https://shiprank.dev/api/scan` — that mismatch is a landmine.
+6. **`shiprank.dev` is a different product** (“lines shipped”). Do not treat it as this app. CLI homepage and uploader default are `https://shiprank-web-cqm7.vercel.app`. npm `1.0.2` may still be stale until a new CLI publish.
 
 Until 1–3 are done, only `localhost:3000` has Dare / Models / new legal pages.
 

@@ -1,10 +1,10 @@
 # ShipRank
 
-The finishing service for AI-built software. Compile a loose prompt into a ship-ready spec, scan the resulting codebase across 9 stations, and rank it on a public leaderboard.
+Don't ship AI-built software without a ShipRank. Category: Ship License.
 
-Positioning: *Give me what your AI built. I'll give it back finished.*
+Three objects: the Card, the Contract, the License. Memory is the product loop. Website is the sport. MCP is the work.
 
-Live CLI homepage currently points at `https://shiprank-web-cqm7.vercel.app`. Uploads target `https://shiprank.dev/api/scan`.
+Live host we control: `https://shiprank-web-cqm7.vercel.app`. Never link `shiprank.dev` (different product). CLI uploads default to that Vercel host.
 
 ## Product loop
 

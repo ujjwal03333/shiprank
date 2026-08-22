@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
-import { ScoreGauge } from "@/app/components/score-gauge";
 import { StationRadar } from "@/app/components/station-radar-lazy";
 import { BadgeSnippet } from "@/app/components/badge-snippet";
 import { CopyButton } from "@/app/components/command-card";
+import { ShipCard } from "@/app/components/ship-card";
+import { ShareActions } from "@/app/components/share-actions";
+import { CloseContract } from "@/app/components/close-contract";
 import {
   gradeBadgeClass,
   STATION_LABEL,
   STATION_DESCRIPTION,
   STATION_COLOR,
-  verdictFor,
 } from "@/lib/grade";
+import { pickContract } from "@/lib/contract";
+import { publicAppUrl } from "@/lib/public-url";
 import { fetchProjectScanPoints } from "@/lib/scan-history";
 import { computeVelocity, formatVelocityLabel } from "@/lib/velocity";
 import { fetchScanFindings } from "@/lib/scan-findings";
@@ -22,10 +25,8 @@ import { MonitorToggle } from "@/app/components/monitor-toggle";
 import { formatPlatformName, formatModelName, timeAgo } from "@/lib/format-names";
 import { fetchCheckPrevalence, type CheckPrevalence } from "@/lib/check-prevalence";
 import { decisionContextFor } from "@/lib/decision-context";
-import { evaluateLieDetector } from "@/lib/lie-detector";
-import { scoreNarrative } from "@/lib/score-narrative";
 
-const APP_URL = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank.dev";
+const APP_URL = publicAppUrl();
 
 export async function generateMetadata({
   params,
@@ -351,39 +352,6 @@ function FindingsSection({
   );
 }
 
-function LieDetectorCard({
-  failingIds,
-  ranIds,
-}: {
-  failingIds: string[];
-  ranIds: string[];
-}) {
-  const result = evaluateLieDetector(failingIds, ranIds);
-  if (result.total === 0) return null;
-  return (
-    <div className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5 shadow-sm">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-mono text-xs uppercase tracking-widest text-ink-subtle">
-          Lie detector
-        </h2>
-        <span className="font-mono text-xs text-ink-muted">
-          Your AI&apos;s confidence score: {result.verifiedCount}/{result.total} claims verified
-        </span>
-      </div>
-      <ul className="flex flex-col gap-2">
-        {result.claims.map((c) => (
-          <li key={c.claim} className="flex items-start justify-between gap-3">
-            <span className="font-body text-sm text-ink">{c.claim}</span>
-            <span className={`font-mono text-xs ${c.verified ? "text-success-ink" : "text-danger-ink"}`}>
-              {c.verified ? "✓" : "✗"}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function VelocityPill({ label, direction }: { label: string; direction: "up" | "down" | "flat" }) {
   const tone =
     direction === "up"
@@ -395,54 +363,6 @@ function VelocityPill({ label, direction }: { label: string; direction: "up" | "
     <span className={`chip-pop font-mono text-xs px-2 py-0.5 rounded ${tone}`}>
       {label}
     </span>
-  );
-}
-
-function ShareCard({
-  scanId,
-  projectName,
-  score,
-  grade,
-}: {
-  scanId: string;
-  projectName: string;
-  score: number;
-  grade: string;
-}) {
-  const url = `https://shiprank.dev/scan/${scanId}`;
-  const tweet = `${projectName} scored ${score}/${grade} on ShipRank 🎯\nDare your app → https://shiprank.dev/dare`;
-  return (
-    <div className="flex flex-col gap-4 rounded-lg border border-brand-soft bg-brand-soft/30 p-5">
-      <h2 className="font-mono text-xs uppercase tracking-widest text-brand">
-        Share this scan
-      </h2>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`/scan/${scanId}/opengraph-image`}
-        alt="Social sharing preview card"
-        width={1200}
-        height={630}
-        loading="lazy"
-        className="w-full rounded-lg border border-border shadow-sm"
-      />
-      <div className="flex gap-2">
-        <input
-          readOnly
-          value={url}
-          aria-label="Scan URL"
-          className="flex-1 rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-ink-muted"
-        />
-        <CopyButton text={url} label="scan URL" />
-        <a
-          href={`https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="whitespace-nowrap rounded-md bg-brand px-4 py-2 font-body text-sm text-ink-onbrand transition-colors hover:bg-brand-hover"
-        >
-          Share on X →
-        </a>
-      </div>
-    </div>
   );
 }
 
@@ -536,10 +456,8 @@ export default async function ScanPage({
     typedScan.station_results.map((s) => s.id),
   );
   const findings = gateFindingsForPlan(rawFindings, resolvedPlan.plan);
+  const contract = pickContract(rawFindings);
   const failingFindings = findings.filter((f) => !f.passed);
-  const criticalCount = failingFindings.filter((f) => f.severity === "critical").length;
-  const verdict = verdictFor(typedScan.score, criticalCount, failingFindings.length);
-
   const prevalenceMap = await fetchCheckPrevalence(
     db,
     failingFindings.map((f) => f.checkId),
@@ -575,175 +493,82 @@ export default async function ScanPage({
     }
   }
 
+  const platform = project?.platform
+    ? formatPlatformName(project.platform)
+    : project?.framework ?? null;
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12 flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <Link href="/" className="font-mono text-xs text-ink-subtle hover:text-brand transition-colors">
-          ← shiprank.dev
-        </Link>
-        <h1 className="font-display text-2xl text-ink mt-2">
-          {project?.name ?? "Unnamed project"}
-        </h1>
-        <div className="flex items-center gap-3 flex-wrap mt-1">
-          {project?.framework && (
-            <span className="font-mono text-xs bg-surface-sunken text-ink-muted px-2 py-0.5 rounded">
-              {project.framework}
-            </span>
-          )}
-          {project?.metadata?.fileCount != null && (
-            <span className="font-mono text-xs text-ink-subtle">
-              {project.metadata.fileCount} files
-            </span>
-          )}
-          {project?.metadata?.lineCount != null && (
-            <span className="font-mono text-xs text-ink-subtle">
-              {project.metadata.lineCount.toLocaleString()} lines
-            </span>
-          )}
-          {scannedAt && (
-            <span className="font-mono text-xs text-ink-subtle" title={new Date(scannedAt).toLocaleString()}>
-              Scanned {timeAgo(scannedAt)}
-            </span>
-          )}
-          {velocity && (
-            <VelocityPill
-              label={formatVelocityLabel(velocity)}
-              direction={velocity.direction}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Score + Stations */}
-      <div className="grid sm:grid-cols-[auto_1fr] gap-6 items-start">
-        <div className="flex flex-col items-center gap-3">
-          <ScoreGauge score={typedScan.score} grade={typedScan.grade} />
-          <span className="font-mono text-xs text-ink-subtle text-center max-w-[160px]">
-            ShipScore
-          </span>
-          <p className="max-w-[200px] text-center font-body text-xs leading-relaxed text-ink-muted">
-            {scoreNarrative(typedScan.score)}
-          </p>
-          <div className="text-center">
-            <p className="font-display text-sm text-ink">{verdict.headline}</p>
-            <p className="mt-0.5 max-w-[180px] font-body text-xs leading-relaxed text-ink-subtle">
-              {verdict.detail}
-            </p>
-          </div>
-        </div>
-        {typedScan.station_results.length > 0 && (
-          <StationBars stations={typedScan.station_results} />
-        )}
-      </div>
-
-      {/* Radar comparison — real sitewide average, skipped if nothing to compare */}
-      {typedScan.station_results.length >= 3 && (
-        <StationRadar
-          current={currentStationScores}
-          siteAverage={siteAverage}
-          siteAverageN={siteAverageN}
-        />
-      )}
-
-      {/* Attribution */}
-      {project && (
-        <AttributionCard
-          project={project}
-          fingerprints={typedScan.fingerprints}
-        />
-      )}
-
-      {/* Top opportunities (lowest-scoring stations) */}
-      {typedScan.station_results.length > 0 && (
-        <div className="rounded-lg border border-border bg-surface p-5 shadow-sm flex flex-col gap-4">
-          <h2 className="font-mono text-xs text-ink-subtle uppercase tracking-widest">
-            Top opportunities
-          </h2>
-          <div className="flex flex-col gap-2">
-            {[...typedScan.station_results]
-              .sort((a, b) => a.score - b.score)
-              .slice(0, 3)
-              .map((s, i) => (
-                <div
-                  key={s.station}
-                  className="flex items-center gap-3 py-2 border-b border-border last:border-0"
-                >
-                  <span className="font-mono text-xs text-brand w-4">
-                    {i + 1}
-                  </span>
-                  <span className="font-body text-sm text-ink flex-1">
-                    Improve {STATION_LABEL[s.station] ?? s.station}
-                  </span>
-                  <span className="font-mono text-sm text-ink">{s.score}</span>
-                  <span
-                    className={`font-mono text-xs px-1.5 py-0.5 rounded ${gradeBadgeClass(s.grade)}`}
-                  >
-                    {s.grade}
-                  </span>
-                </div>
-              ))}
-          </div>
-          <p className="font-body text-xs text-ink-subtle">
-            Run{" "}
-            <code className="font-mono bg-surface-sunken px-1 rounded">
-              npx shiprank --rules
-            </code>{" "}
-            to generate a rules file for your AI coding tool.
-          </p>
-        </div>
-      )}
-
-      <LieDetectorCard
-        failingIds={failingFindings.map((f) => f.checkId)}
-        ranIds={findings.map((f) => f.checkId)}
+    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
+      <ShipCard
+        score={typedScan.score}
+        grade={typedScan.grade}
+        projectName={project?.name ?? "Unnamed project"}
+        platform={platform}
+        meta={
+          project?.metadata?.fileCount != null
+            ? `${project.metadata.fileCount} files`
+            : undefined
+        }
+        size="hero"
+        staticStamp
       />
 
-      {/* Findings — free tier sees title + severity, fix content blurred */}
-      <FindingsSection
-        findings={failingFindings}
-        prevalenceMap={prevalenceMap}
-        plan={resolvedPlan.plan}
-      />
-
-      {/* Monitor tier: opt this project into scheduled re-scans */}
-      {resolvedPlan.plan === "monitor" && project?.repo_url && (
-        <div className="rounded-lg border border-border bg-surface p-5 shadow-sm flex flex-col gap-3">
-          <h2 className="font-mono text-xs text-ink-subtle uppercase tracking-widest">
-            Monitoring
-          </h2>
-          <MonitorToggle repoUrl={project.repo_url} projectId={project.id} />
-        </div>
-      )}
-
-      {/* Verifiable badge */}
-      <BadgeSnippet scanId={typedScan.id} appUrl={APP_URL} />
-
-      {/* Share */}
-      <ShareCard
+      <ShareActions
         scanId={typedScan.id}
         projectName={project?.name ?? "This project"}
         score={typedScan.score}
         grade={typedScan.grade}
+        origin={APP_URL}
       />
 
-      {/* Next action CTA */}
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6 shadow-sm text-center">
-        <h2 className="font-display text-lg text-ink">What&apos;s next?</h2>
-        <p className="mx-auto max-w-md font-body text-sm text-ink-muted">
-          Fix the top findings, then re-scan to see your score climb.
-          Generate an AGENTS.md rules file so your AI tool avoids the same mistakes.
-        </p>
-        <div className="mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <code className="rounded-lg border border-border bg-surface-sunken px-4 py-2.5 font-mono text-sm text-ink">
-            npx shiprank --rules
-          </code>
-          <span className="font-body text-xs text-ink-subtle">then</span>
-          <code className="rounded-lg border border-border bg-surface-sunken px-4 py-2.5 font-mono text-sm text-ink">
-            npx shiprank ./your-project --upload
-          </code>
+      <CloseContract contract={contract} />
+
+      {velocity ? (
+        <div className="flex items-center justify-center gap-3">
+          <VelocityPill
+            label={formatVelocityLabel(velocity)}
+            direction={velocity.direction}
+          />
+          {scannedAt ? (
+            <span className="font-mono text-xs text-ink-subtle" title={new Date(scannedAt).toLocaleString()}>
+              {timeAgo(scannedAt)}
+            </span>
+          ) : null}
         </div>
-      </div>
+      ) : null}
+
+      <details id="stations" className="border border-border bg-surface">
+        <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+          Stations and evidence
+        </summary>
+        <div className="flex flex-col gap-6 border-t border-border px-5 py-6">
+          {typedScan.station_results.length >= 3 && (
+            <StationRadar
+              current={currentStationScores}
+              siteAverage={siteAverage}
+              siteAverageN={siteAverageN}
+            />
+          )}
+          {project && (
+            <AttributionCard
+              project={project}
+              fingerprints={typedScan.fingerprints}
+            />
+          )}
+          {typedScan.station_results.length > 0 && (
+            <StationBars stations={typedScan.station_results} />
+          )}
+          <FindingsSection
+            findings={failingFindings}
+            prevalenceMap={prevalenceMap}
+            plan={resolvedPlan.plan}
+          />
+          <BadgeSnippet scanId={typedScan.id} appUrl={APP_URL} />
+          {resolvedPlan.plan === "monitor" && project?.repo_url ? (
+            <MonitorToggle repoUrl={project.repo_url} projectId={project.id} />
+          ) : null}
+        </div>
+      </details>
     </div>
   );
 }

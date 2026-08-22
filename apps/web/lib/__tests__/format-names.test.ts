@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { formatPlatformName, formatModelName, timeAgo } from "../format-names";
+import { formatPlatformName, formatModelName, timeAgo, visiblePlatform } from "../format-names";
 
 describe("formatPlatformName", () => {
   it("returns canonical name for known platforms", () => {
@@ -24,6 +24,15 @@ describe("formatPlatformName", () => {
     expect(formatPlatformName(null)).toBe("Not detected");
     expect(formatPlatformName(undefined)).toBe("Not detected");
     expect(formatPlatformName("")).toBe("Not detected");
+  });
+});
+
+describe("visiblePlatform", () => {
+  it("hides unknown and empty so the Card stays clean", () => {
+    expect(visiblePlatform(null)).toBeNull();
+    expect(visiblePlatform("unknown")).toBeNull();
+    expect(visiblePlatform("Not detected")).toBeNull();
+    expect(visiblePlatform("cursor")).toBe("Cursor");
   });
 });
 

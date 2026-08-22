@@ -1,8 +1,7 @@
+import { gradeHex } from "./night-court";
+
 export function gradeStroke(grade: string): string {
-  if (grade === "A+" || grade === "A") return "#3f7d52";
-  if (grade === "B") return "#3d6e8c";
-  if (grade === "C") return "#c08a1e";
-  return "#b23b3b";
+  return gradeHex(grade);
 }
 
 export function gradeBadgeClass(grade: string): string {
@@ -10,6 +9,25 @@ export function gradeBadgeClass(grade: string): string {
   if (grade === "B") return "bg-info-soft text-info-ink";
   if (grade === "C") return "bg-warning-soft text-warning-ink";
   return "bg-danger-soft text-danger-ink";
+}
+
+/** Display-letter color on the Night Court Card. Grade IS the color. */
+export function gradeLetterClass(grade: string): string {
+  const g = grade.toUpperCase();
+  if (g === "A+" || g === "A") return "text-grade-a";
+  if (g === "B") return "text-grade-b";
+  if (g === "C") return "text-grade-c";
+  if (g === "D") return "text-grade-d";
+  return "text-grade-f";
+}
+
+/** One line under the letter. Short enough to screenshot. Locked voice. */
+export function cardLine(score: number): string {
+  if (score >= 97) return "Exceptional.";
+  if (score >= 85) return "Ready to ship.";
+  if (score >= 70) return "Almost.";
+  if (score >= 55) return "Not shippable yet.";
+  return "Do not ship.";
 }
 
 export interface Verdict {

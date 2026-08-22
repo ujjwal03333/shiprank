@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ScoreReveal } from "../../components/score-reveal";
+import { ShareActions } from "../../components/share-actions";
+import { formatPlatformName } from "@/lib/format-names";
 
 interface JobPayload {
   id: string;
@@ -15,21 +18,24 @@ interface JobPayload {
     projectName?: string;
     score?: number;
     grade?: string;
+    platform?: string;
   } | null;
   scan_id: string | null;
   error_message: string | null;
 }
 
-const STAGES = [
-  "Cloning repository...",
-  "Profiling codebase...",
-  "Running checks...",
-  "Computing score...",
-];
+const ACTS = [
+  { key: "clone", label: "Cloning", match: "clon" },
+  { key: "profile", label: "Profiling", match: "profil" },
+  { key: "judge", label: "Judging", match: "check" },
+  { key: "score", label: "Stamping", match: "score" },
+] as const;
 
 export function DareProgress({ jobId }: { jobId: string }) {
   const [job, setJob] = useState<JobPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const started = useRef(Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -57,20 +63,32 @@ export function DareProgress({ jobId }: { jobId: string }) {
     const id = setInterval(() => {
       void tick();
     }, 2000);
+    const clock = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - started.current) / 1000));
+    }, 1000);
     return () => {
       cancelled = true;
       clearInterval(id);
+      clearInterval(clock);
     };
   }, [jobId]);
 
   if (error) {
-    return <p className="font-body text-sm text-danger-ink">{error}</p>;
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-12 text-center">
+        <p className="font-display text-2xl text-ink">Couldn&apos;t load this dare</p>
+        <p className="font-body text-sm text-ink-muted">{error}</p>
+        <Link href="/dare" className="font-body text-sm text-ink hover:underline">
+          Try another repo →
+        </Link>
+      </div>
+    );
   }
 
   if (!job) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="skeleton h-4 w-48 rounded" />
+      <div className="mx-auto flex max-w-lg flex-col gap-3 py-12">
+        <div className="skeleton h-4 w-40 rounded" />
         <div className="skeleton h-3 w-full rounded" />
       </div>
     );
@@ -78,119 +96,146 @@ export function DareProgress({ jobId }: { jobId: string }) {
 
   if (job.status === "complete") {
     const name = job.progress?.projectName ?? job.repo_url;
-    const scoreBit =
-      job.progress?.score != null && job.progress.grade
-        ? `${job.progress.score}/${job.progress.grade}`
-        : "a ShipScore";
-    const tweet = `${name} scored ${scoreBit} on ShipRank 🎯\nDare your app → https://shiprank.dev/dare`;
-    return (
-      <div className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm">
-        <p className="font-display text-xl text-ink">Scan complete</p>
-        <p className="font-display text-3xl text-ink">
-          {job.progress?.score != null ? job.progress.score : "—"}
-          {job.progress?.grade ? (
-            <span className="ml-2 font-mono text-base text-ink-muted">{job.progress.grade}</span>
-          ) : null}
-        </p>
-        <p className="font-body text-sm text-ink-muted">
-          {name}
-          {job.progress?.framework ? ` · ${job.progress.framework}` : ""}
-          {job.progress?.fileCount != null ? ` · ${job.progress.fileCount} files` : ""}
-        </p>
-        {job.scan_id ? (
-          <Link
-            href={`/scan/${job.scan_id}`}
-            className="press rounded-lg bg-brand px-4 py-2.5 text-center font-body text-sm text-ink-onbrand hover:bg-brand-hover"
-          >
-            Open the report →
-          </Link>
-        ) : (
-          <p className="font-body text-xs text-ink-subtle">
-            Score computed locally. Leaderboard write needs a valid service-role
-            key and migration 00011.
-          </p>
-        )}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <a
-            href={`https://x.com/intent/tweet?text=${encodeURIComponent(tweet)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="press flex-1 rounded-lg border border-border px-4 py-2.5 text-center font-body text-sm text-ink hover:bg-surface-raised"
-          >
-            Share on X
-          </a>
-          <Link
-            href="/dare"
-            className="press flex-1 rounded-lg border border-border px-4 py-2.5 text-center font-body text-sm text-ink hover:bg-surface-raised"
-          >
-            Dare someone back
+    const score = job.progress?.score;
+    const grade = job.progress?.grade ?? "—";
+    const platform = job.progress?.platform
+      ? formatPlatformName(job.progress.platform)
+      : job.progress?.framework ?? null;
+    const meta =
+      job.progress?.fileCount != null ? `${job.progress.fileCount} files` : undefined;
+
+    if (score == null) {
+      return (
+        <div className="mx-auto flex max-w-lg flex-col items-center gap-4 text-center">
+          <p className="font-display text-3xl text-ink">Scan complete</p>
+          <Link href="/dare" className="font-mono text-xs text-ink-subtle hover:text-ink">
+            Dare someone back →
           </Link>
         </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto flex w-full max-w-lg flex-col items-center">
+        <ScoreReveal
+          score={score}
+          grade={grade}
+          projectName={name}
+          platform={platform}
+          meta={meta}
+          animate
+        >
+          {job.scan_id ? (
+            <ShareActions
+              scanId={job.scan_id}
+              projectName={name}
+              score={score}
+              grade={grade}
+              closeHref={`/scan/${job.scan_id}`}
+            />
+          ) : (
+            <p className="text-center font-body text-xs text-ink-subtle">
+              Grade is ready. The board write needs a configured database.
+            </p>
+          )}
+        </ScoreReveal>
       </div>
     );
   }
 
   if (job.status === "failed") {
     return (
-      <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6">
-        <p className="font-display text-xl text-ink">Could not finish this dare</p>
-        <p className="font-body text-sm text-ink-muted">
-          {job.error_message ?? "Unknown error."}
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-12 text-center">
+        <p className="font-display text-2xl text-ink">Couldn&apos;t finish this dare</p>
+        <p className="font-body text-sm leading-relaxed text-ink-muted">
+          {job.error_message ?? "This repo is private, too big, or gone."}
         </p>
-        <Link href="/dare" className="font-body text-sm text-brand hover:underline">
-          Try another repo →
+        <Link
+          href="/dare"
+          className="press rounded-[10px] bg-ink px-5 py-3 font-body text-sm text-canvas"
+        >
+          Try another repo
         </Link>
       </div>
     );
   }
 
-  const current = job.progress_stage ?? "Queued";
-  const currentIdx = STAGES.findIndex((s) => current.toLowerCase().includes(s.split("...")[0]!.toLowerCase()));
+  const stage = (job.progress_stage ?? job.status).toLowerCase();
+  let currentIdx = ACTS.findIndex((a) => stage.includes(a.match));
+  if (currentIdx < 0) {
+    if (job.status === "queued" || job.status === "cloning") currentIdx = 0;
+    else if (job.status === "scanning") currentIdx = 2;
+    else currentIdx = 0;
+  }
+
+  const chips = [
+    job.progress?.fileCount != null ? `${job.progress.fileCount} files` : null,
+    job.progress?.framework ?? null,
+    job.progress?.platform
+      ? formatPlatformName(job.progress.platform)
+      : null,
+    job.progress?.findingCount != null
+      ? `${job.progress.findingCount} findings`
+      : null,
+  ].filter(Boolean) as string[];
 
   return (
-    <div className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm">
-      <p className="font-mono text-xs text-ink-subtle">{job.repo_url}</p>
-      <ol className="flex flex-col gap-3">
-        {STAGES.map((stage, i) => {
-          const done = currentIdx > i || job.status === "complete";
-          const active = currentIdx === i || (currentIdx < 0 && i === 0 && job.status !== "queued");
+    <div className="mx-auto flex w-full max-w-md flex-col gap-12">
+      <p className="truncate font-mono text-xs text-ink-subtle">{job.repo_url}</p>
+      <ol className="flex flex-col gap-6">
+        {ACTS.map((act, i) => {
+          const done = currentIdx > i;
+          const active = currentIdx === i;
           return (
-            <li key={stage} className="flex items-center gap-3">
-              <span
-                className={`grid size-5 place-items-center rounded-full font-mono text-[10px] ${
-                  done
-                    ? "bg-success-soft text-success-ink"
-                    : active
-                      ? "bg-brand-soft text-brand-ink pulse-dot"
-                      : "bg-surface-sunken text-ink-subtle"
-                }`}
-              >
-                {done ? "✓" : i + 1}
-              </span>
-              <span className={`font-body text-sm ${active ? "text-ink" : "text-ink-muted"}`}>
-                {stage}
-              </span>
+            <li key={act.key} className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-4">
+                <span
+                  className={`font-mono text-[11px] tracking-[0.2em] ${
+                    done
+                      ? "text-grade-a"
+                      : active
+                        ? "text-ink"
+                        : "text-ink-subtle/40"
+                  }`}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span
+                  className={`font-display text-3xl tracking-tight sm:text-4xl ${
+                    done
+                      ? "text-ink-subtle line-through decoration-grade-a decoration-1"
+                      : active
+                        ? "text-ink"
+                        : "text-ink-subtle/35"
+                  }`}
+                >
+                  {act.label}
+                </span>
+                {active ? (
+                  <span className="pulse-dot size-1.5 rounded-full bg-grade-a" />
+                ) : null}
+              </div>
+              {active && chips.length > 0 ? (
+                <div className="ml-10 flex flex-wrap gap-2">
+                  {chips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="chip-pop border border-border px-2.5 py-1 font-mono text-xs text-ink-muted"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </li>
           );
         })}
       </ol>
-      <div className="flex flex-wrap gap-2">
-        {job.progress?.fileCount != null && (
-          <span className="rounded-full bg-surface-sunken px-2.5 py-1 font-mono text-xs text-ink-muted">
-            {job.progress.fileCount} files
-          </span>
-        )}
-        {job.progress?.framework && (
-          <span className="rounded-full bg-surface-sunken px-2.5 py-1 font-mono text-xs text-ink-muted">
-            {job.progress.framework}
-          </span>
-        )}
-        {job.progress?.findingCount != null && (
-          <span className="rounded-full bg-surface-sunken px-2.5 py-1 font-mono text-xs text-ink-muted">
-            {job.progress.findingCount} findings
-          </span>
-        )}
-      </div>
+      <p className="font-mono text-[11px] text-ink-subtle">
+        {elapsed >= 45
+          ? "Still reading the tree."
+          : "Most dares finish in under a minute."}
+      </p>
     </div>
   );
 }

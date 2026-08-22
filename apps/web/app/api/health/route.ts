@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import {
+  CONTROLLED_HOST,
+  isForeignShiprankHost,
+  publicAppUrl,
+} from "@/lib/public-url";
 
 /** Cheap liveness probe for Vercel / uptime. Does not throw. */
 export async function GET() {
+  const rawAppUrl = process.env["NEXT_PUBLIC_APP_URL"]?.trim() ?? null;
+  const origin = publicAppUrl();
+  const rawIsForeign = rawAppUrl != null && isForeignShiprankHost(rawAppUrl);
+
   return NextResponse.json({
     ok: true,
     supabase: isSupabaseConfigured(),
+    origin,
+    originSafe: !isForeignShiprankHost(origin) && !rawIsForeign,
+    rawAppUrl,
+    rawIsForeign,
+    controlledHost: CONTROLLED_HOST,
     time: new Date().toISOString(),
   });
 }

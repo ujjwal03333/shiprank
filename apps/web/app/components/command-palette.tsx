@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const ITEMS = [
-  { href: "/", title: "Home", hint: "compile scan rank" },
+  { href: "/", title: "Home", hint: "dare license ship" },
   { href: "/dare", title: "Dare a repo", hint: "github public scan" },
-  { href: "/leaderboard", title: "Leaderboard", hint: "rankings scores" },
-  { href: "/models", title: "Model rankings", hint: "claude gpt cursor" },
-  { href: "/methodology", title: "Methodology", hint: "checks grades stations" },
-  { href: "/pricing", title: "Pricing", hint: "pro monitor checkout" },
+  { href: "/leaderboard", title: "Board", hint: "rankings cards scores" },
+  { href: "/pricing", title: "Pricing", hint: "close license checkout" },
   { href: "/dashboard", title: "Dashboard", hint: "monitor projects" },
+  { href: "/methodology", title: "Methodology", hint: "checks grades stations" },
+  { href: "/models", title: "Model rankings", hint: "claude gpt cursor" },
   { href: "/about", title: "About", hint: "ujjwal contact" },
   { href: "/privacy", title: "Privacy", hint: "data cookies" },
   { href: "/terms", title: "Terms", hint: "legal" },

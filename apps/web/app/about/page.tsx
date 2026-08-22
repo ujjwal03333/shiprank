@@ -13,7 +13,7 @@ export default function AboutPage() {
       <div>
         <span className="font-mono text-xs text-brand uppercase tracking-widest">About</span>
         <h1 className="font-display text-3xl text-ink mt-2">
-          Making AI-generated code safe for production
+          Don&apos;t ship AI-built software without a ShipRank
         </h1>
       </div>
 
@@ -53,10 +53,12 @@ export default function AboutPage() {
         <p className="font-body text-sm text-ink-muted leading-relaxed">
           Questions, bug reports, data-deletion requests, or partnerships:{" "}
           <a
-            href="mailto:hello@shiprank.dev"
+            href="https://github.com/ujjwal03333/shiprank/issues"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-brand-ink transition-colors hover:text-brand"
           >
-            hello@shiprank.dev
+            github.com/ujjwal03333/shiprank/issues
           </a>
         </p>
       </div>

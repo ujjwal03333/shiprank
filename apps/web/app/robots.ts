@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
+import { publicAppUrl } from "@/lib/public-url";
 
-const BASE_URL =
-  process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank.dev";
+const BASE_URL = publicAppUrl();
 
 export default function robots(): MetadataRoute.Robots {
   return {

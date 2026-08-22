@@ -8,6 +8,8 @@ const PLATFORM_NAMES: Record<string, string> = {
   copilot: "GitHub Copilot",
   "github-copilot": "GitHub Copilot",
   claude: "Claude",
+  "claude-code": "Claude Code",
+  base44: "Base44",
   chatgpt: "ChatGPT",
   aider: "Aider",
   cline: "Cline",
@@ -20,6 +22,16 @@ export function formatPlatformName(raw: string | null | undefined): string {
   const lower = raw.toLowerCase();
   if (PLATFORM_NAMES[lower]) return PLATFORM_NAMES[lower]!;
   return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** Card chip only — hide unknown / empty so the face stays clean. */
+export function visiblePlatform(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.trim().toLowerCase();
+  if (!lower || lower === "unknown" || lower === "not detected") return null;
+  const named = formatPlatformName(raw);
+  if (named === "Unknown" || named === "Not detected") return null;
+  return named;
 }
 
 export function formatModelName(raw: string | null | undefined): string {

@@ -83,9 +83,14 @@ export default function PrivacyPage() {
 
       <Section title="Deletion">
         <p>
-          Email{" "}
-          <a href="mailto:hello@shiprank.dev" className="text-brand-ink transition-colors hover:text-brand">
-            hello@shiprank.dev
+          Open an issue at{" "}
+          <a
+            href="https://github.com/ujjwal03333/shiprank/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-ink transition-colors hover:text-brand"
+          >
+            github.com/ujjwal03333/shiprank/issues
           </a>{" "}
           with your project name or scan ID and we&apos;ll delete the
           associated scan records. Subscription/billing records are retained

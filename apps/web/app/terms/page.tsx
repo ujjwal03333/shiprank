@@ -29,9 +29,10 @@ export default function TermsPage() {
 
       <Section title="What this is">
         <p>
-          ShipRank is a code-quality scanner: a CLI you run locally, and a
-          hosted service (leaderboard, scan reports, Compile, Dare) at
-          shiprank.dev. By running the CLI with{" "}
+          ShipRank is a Ship License for AI-built software: a CLI you run
+          locally, and a hosted service (Dare, Cards, Board, Compile, scan
+          reports). This site is not shiprank.dev, which is a different
+          product. By running the CLI with{" "}
           <code className="font-mono text-xs bg-surface-sunken px-1 rounded">--upload</code>{" "}
           or using the website, you agree to these terms.
         </p>
@@ -113,8 +114,13 @@ export default function TermsPage() {
 
       <Section title="Contact">
         <p>
-          <a href="mailto:hello@shiprank.dev" className="text-brand-ink transition-colors hover:text-brand">
-            hello@shiprank.dev
+          <a
+            href="https://github.com/ujjwal03333/shiprank/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-ink transition-colors hover:text-brand"
+          >
+            github.com/ujjwal03333/shiprank/issues
           </a>
         </p>
       </Section>

@@ -31,6 +31,7 @@ export interface DareProgress {
   projectName?: string;
   score?: number;
   grade?: string;
+  platform?: string;
 }
 
 async function countFiles(dir: string, depth = 0): Promise<number> {
@@ -169,6 +170,7 @@ export async function processDareJob(jobId: string): Promise<void> {
         projectName,
         score,
         grade,
+        platform: fingerprint.platform.platform,
       },
     });
 
@@ -214,6 +216,7 @@ export async function processDareJob(jobId: string): Promise<void> {
       projectName,
       score,
       grade,
+      platform: fingerprint.platform.platform,
     };
 
     // Finish the job first so a hung ingest cannot leave the UI on

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { DareProgress } from "./dare-progress";
 
 export const metadata: Metadata = {
-  title: "Dare in progress",
-  description: "Live progress for a ShipRank Dare scan.",
+  title: "Dare",
+  description: "A ShipRank Dare in progress.",
 };
 
 export default async function DareJobPage({
@@ -13,13 +13,7 @@ export default async function DareJobPage({
 }) {
   const { jobId } = await params;
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-8 px-6 py-20">
-      <div>
-        <span className="font-mono text-xs uppercase tracking-widest text-brand">
-          Dare
-        </span>
-        <h1 className="mt-2 font-display text-3xl text-ink">Scanning…</h1>
-      </div>
+    <div className="night-court min-h-[calc(100dvh-12rem)] px-6 py-16">
       <DareProgress jobId={jobId} />
     </div>
   );

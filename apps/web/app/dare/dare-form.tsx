@@ -46,14 +46,14 @@ export function DareForm() {
         autoComplete="off"
         spellCheck={false}
         required
-        className="w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-center font-mono text-sm text-ink placeholder:text-ink-subtle shadow-sm"
+        className="w-full rounded-[10px] border border-border bg-surface px-4 py-4 text-center font-mono text-base text-ink placeholder:text-ink-subtle shadow-sm"
       />
       <button
         type="submit"
         disabled={pending || value.trim().length < 3}
-        className="press rounded-xl bg-brand px-5 py-3 font-body text-sm font-medium text-ink-onbrand hover:bg-brand-hover disabled:opacity-50"
+        className="press rounded-[10px] bg-ink px-5 py-3.5 font-body text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "Checking repository…" : "Dare it"}
+        {pending ? "Opening the repo…" : "Dare"}
       </button>
       {error && (
         <p role="alert" className="font-body text-sm text-danger-ink">

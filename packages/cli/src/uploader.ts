@@ -1,6 +1,7 @@
 import type { ScanResult } from "./scanner.js";
 
-const DEFAULT_API_URL = "https://shiprank.dev/api/scan";
+/** Host we control. shiprank.dev is a different product. */
+export const DEFAULT_API_URL = "https://shiprank-web-cqm7.vercel.app/api/scan";
 
 export interface CheckResultPayload {
   checkId: string;

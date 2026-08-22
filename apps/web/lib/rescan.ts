@@ -108,7 +108,7 @@ export async function rescanMonitoredProject(
 
     let emailSent = false;
     if (regression.isRegression && monitored.subscriptionEmail && isResendConfigured()) {
-      const appUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank.dev";
+      const appUrl = process.env["NEXT_PUBLIC_APP_URL"] ?? "https://shiprank-web-cqm7.vercel.app";
       const email = renderRegressionEmail({
         projectName: result.projectName,
         previousScore: previous.score ?? result.score,

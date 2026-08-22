@@ -3,49 +3,7 @@
 
 body {
   @apply bg-canvas text-ink font-body antialiased;
-  background-image:
-    radial-gradient(
-      1100px 520px at 50% -8%,
-      rgb(196 98 45 / 0.08),
-      transparent 62%
-    ),
-    radial-gradient(
-      820px 420px at 88% 4%,
-      rgb(61 110 140 / 0.05),
-      transparent 58%
-    );
-  background-repeat: no-repeat;
   text-rendering: optimizeLegibility;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body {
-    background-image:
-      radial-gradient(
-        1100px 520px at 50% -8%,
-        rgb(212 119 74 / 0.06),
-        transparent 62%
-      ),
-      radial-gradient(
-        820px 420px at 88% 4%,
-        rgb(90 148 184 / 0.04),
-        transparent 58%
-      );
-  }
-}
-
-:root[data-theme="dark"] body {
-  background-image:
-    radial-gradient(
-      1100px 520px at 50% -8%,
-      rgb(212 119 74 / 0.06),
-      transparent 62%
-    ),
-    radial-gradient(
-      820px 420px at 88% 4%,
-      rgb(90 148 184 / 0.04),
-      transparent 58%
-    );
 }
 
 /* Brand-tinted selection */
@@ -189,6 +147,38 @@ html {
   animation: gold-shimmer 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+@keyframes letter-land {
+  from {
+    opacity: 0;
+    transform: scale(1.06) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.letter-land {
+  animation: letter-land 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes letter-stamp {
+  from {
+    opacity: 0;
+    letter-spacing: 0.08em;
+    transform: translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: -0.04em;
+    transform: none;
+  }
+}
+
+.letter-stamp {
+  animation: letter-stamp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal-1,
@@ -199,7 +189,9 @@ html {
   .pulse-dot,
   .thinking-dot,
   .chip-pop,
-  .grow-bar {
+  .grow-bar,
+  .letter-land,
+  .letter-stamp {
     animation: none;
   }
   html {

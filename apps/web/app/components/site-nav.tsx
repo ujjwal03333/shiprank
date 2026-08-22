@@ -56,19 +56,7 @@ function MobileMenuButton() {
             href="/leaderboard"
             className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
           >
-            Leaderboard
-          </Link>
-          <Link
-            href="/models"
-            className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-          >
-            Models
-          </Link>
-          <Link
-            href="/methodology"
-            className="flex items-center rounded-md px-3 py-3.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-          >
-            Methodology
+            Board
           </Link>
           <Link
             href="/pricing"
@@ -114,19 +102,7 @@ export function SiteNav() {
               href="/leaderboard"
               className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
             >
-              Leaderboard
-            </Link>
-            <Link
-              href="/models"
-              className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              Models
-            </Link>
-            <Link
-              href="/methodology"
-              className="rounded-md px-3 py-1.5 font-body text-sm text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              Methodology
+              Board
             </Link>
             <Link
               href="/pricing"

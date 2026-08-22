@@ -10,11 +10,11 @@ describe("renderBadgeSvg", () => {
     expect(svg).toContain("86 A");
   });
 
-  it("colors A green, B teal, C amber, F red", () => {
-    expect(renderBadgeSvg({ score: 95, grade: "A" })).toContain("#3f7d52");
-    expect(renderBadgeSvg({ score: 78, grade: "B" })).toContain("#3d6e8c");
-    expect(renderBadgeSvg({ score: 60, grade: "C" })).toContain("#c08a1e");
-    expect(renderBadgeSvg({ score: 30, grade: "F" })).toContain("#b23b3b");
+  it("colors A gold, B steel, C amber, F blood", () => {
+    expect(renderBadgeSvg({ score: 95, grade: "A" })).toContain("#E8C547");
+    expect(renderBadgeSvg({ score: 78, grade: "B" })).toContain("#8FBFCC");
+    expect(renderBadgeSvg({ score: 60, grade: "C" })).toContain("#F0A03A");
+    expect(renderBadgeSvg({ score: 30, grade: "F" })).toContain("#FF4D4D");
   });
 
   it("renders an 'unknown' badge when score/grade are missing", () => {

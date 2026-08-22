@@ -16,7 +16,7 @@ Usage:
 Options:
   --json                          Output full report as JSON
   --ci --threshold <n>            Exit 1 if score < n (default 60)
-  --upload                        Upload results to shiprank.dev leaderboard
+  --upload                        Upload results to the ShipRank board
   --rules                         Print an AGENTS.md / .cursorrules file
   -h, --help                      Show this help message
 
@@ -80,7 +80,7 @@ async function runScanCommand(args: ParsedArgs): Promise<number> {
   if (args.upload) {
     try {
       await uploadResult(result);
-      process.stderr.write("Uploaded to shiprank.dev\n");
+      process.stderr.write("Uploaded to the ShipRank board\n");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       process.stderr.write(`Upload failed: ${msg}\n`);

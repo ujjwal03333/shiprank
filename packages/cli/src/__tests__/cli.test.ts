@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseArgs } from "../args.js";
-import { buildUploadPayload } from "../uploader.js";
+import { buildUploadPayload, DEFAULT_API_URL } from "../uploader.js";
 import { gradeFromScore, renderTerminalOutput, renderJsonOutput } from "../formatter.js";
 import type { ScanResult } from "../scanner.js";
 
@@ -132,6 +132,15 @@ function makeMinimalResult(score: number): ScanResult {
     },
   };
 }
+
+describe("DEFAULT_API_URL", () => {
+  it("points at the host we control, not shiprank.dev", () => {
+    expect(DEFAULT_API_URL).toBe(
+      "https://shiprank-web-cqm7.vercel.app/api/scan",
+    );
+    expect(DEFAULT_API_URL).not.toContain("shiprank.dev");
+  });
+});
 
 describe("buildUploadPayload()", () => {
   it("maps score, grade, framework correctly", () => {
