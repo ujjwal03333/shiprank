@@ -259,8 +259,11 @@ export async function processDareJob(jobId: string): Promise<void> {
         ]);
         scanId = ingested.scanId;
         await updateDareJob(jobId, { scan_id: scanId, progress });
-      } catch {
-        // Score is already public on the job. Leaderboard write is best-effort.
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Leaderboard ingest failed.";
+        console.error("Dare ingest failed:", message);
+        await updateDareJob(jobId, { error_message: message, progress });
       }
     }
   } catch (err) {

@@ -42,7 +42,11 @@ function writeLocal(all: Record<string, DareJob>): void {
 
 let supabaseOk: boolean | null = null;
 
-async function supabaseAvailable(): Promise<boolean> {
+function onVercel(): boolean {
+  return process.env["VERCEL"] === "1";
+}
+
+export async function supabaseAvailable(): Promise<boolean> {
   if (supabaseOk != null) return supabaseOk;
   if (!isSupabaseConfigured()) {
     supabaseOk = false;
@@ -51,9 +55,15 @@ async function supabaseAvailable(): Promise<boolean> {
   try {
     const db = getServiceClient();
     const { error } = await db.from("scan_jobs").select("id").limit(1);
-    supabaseOk = !error;
-    return supabaseOk;
-  } catch {
+    if (error) {
+      console.error("scan_jobs probe failed:", error.message);
+      supabaseOk = false;
+      return false;
+    }
+    supabaseOk = true;
+    return true;
+  } catch (err) {
+    console.error("scan_jobs probe threw:", err);
     supabaseOk = false;
     return false;
   }
@@ -69,6 +79,14 @@ export async function createDareJob(repoUrl: string): Promise<DareJob> {
       .select("id, repo_url, status, progress_stage, progress, scan_id, error_message, created_at, completed_at")
       .single();
     if (!error && data) return data as DareJob;
+    console.error("scan_jobs insert failed:", error?.message);
+    if (onVercel()) {
+      throw new Error(`scan_jobs insert failed: ${error?.message ?? "unknown"}`);
+    }
+  } else if (onVercel()) {
+    throw new Error(
+      "scan_jobs is not reachable. Check SUPABASE_SERVICE_ROLE_KEY (JWT only) and migration 00011.",
+    );
   }
 
   const job: DareJob = {

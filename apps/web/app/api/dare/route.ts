@@ -69,7 +69,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const job = await createDareJob(repo.url);
+  let job;
+  try {
+    job = await createDareJob(repo.url);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not create dare job.";
+    return NextResponse.json({ error: message }, { status: 503 });
+  }
 
   after(() => {
     void processDareJob(job.id);
