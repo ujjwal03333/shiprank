@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function DarePage() {
   return (
-    <div className="night-court flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center px-6 py-16 text-center">
+    <div className="night-court flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center px-6 py-16 text-center">
       <div className="flex w-full max-w-lg flex-col items-center gap-8">
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           DARE

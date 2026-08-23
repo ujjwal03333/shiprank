@@ -37,10 +37,17 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <section className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-lg flex-col items-center justify-center gap-10 px-6 py-20 text-center">
+      <section className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-lg flex-col items-center justify-center gap-8 px-6 py-20 text-center">
+        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
+          SHIP LICENSE
+        </span>
         <h1 className="font-display text-4xl leading-[1.08] tracking-tight text-ink sm:text-5xl">
           Don&apos;t ship AI-built software without a ShipRank.
         </h1>
+        <p className="font-body text-sm text-ink-muted">
+          Paste a public GitHub URL. We stamp a grade. The Card goes on the
+          board.
+        </p>
         <div className="w-full">
           <DareForm />
         </div>
@@ -49,29 +56,34 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <section className="mx-auto w-full max-w-5xl px-6 pb-20">
+      <section className="mx-auto w-full max-w-6xl px-6 pb-20">
         {cards.length === 0 ? (
           <p className="text-center font-mono text-xs text-ink-subtle">
             The board is empty. Be the first dare.
           </p>
         ) : (
-          <div className="flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible">
-            {cards.map((card) => (
-              <div key={card.scanId} className="min-w-[260px] flex-1 snap-start">
-                <ShipCard
-                  score={card.score}
-                  grade={card.grade}
-                  projectName={card.projectName}
-                  platform={
-                    card.platform ? formatPlatformName(card.platform) : null
-                  }
-                  href={cardPath(card.scanId)}
-                  size="board"
-                  staticStamp
-                />
-              </div>
-            ))}
-          </div>
+          <>
+            <p className="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-ink-subtle">
+              LIVE
+            </p>
+            <div className="flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible">
+              {cards.map((card) => (
+                <div key={card.scanId} className="min-w-[260px] flex-1 snap-start">
+                  <ShipCard
+                    score={card.score}
+                    grade={card.grade}
+                    projectName={card.projectName}
+                    platform={
+                      card.platform ? formatPlatformName(card.platform) : null
+                    }
+                    href={cardPath(card.scanId)}
+                    size="board"
+                    staticStamp
+                  />
+                </div>
+              ))}
+            </div>
+          </>
         )}
         <div className="mt-12 flex flex-col items-center gap-3 font-mono text-xs text-ink-subtle">
           <code>npx shiprank</code>
