@@ -3,12 +3,13 @@ import Link from "next/link";
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { formatPlatformName } from "@/lib/format-names";
 import { publicBoardEntries } from "@/lib/provenance";
+import { cardPath } from "@/lib/public-url";
 import { LeaderboardTable } from "../components/leaderboard-table";
+import { ShipCard } from "../components/ship-card";
 
 export const metadata: Metadata = {
-  title: "Leaderboard",
-  description:
-    "AI platform and framework rankings by ShipScore — quality, security, and growth data from real scans.",
+  title: "Board",
+  description: "Public grades. Real repos. Same engine.",
   alternates: { canonical: "/leaderboard" },
 };
 
@@ -120,44 +121,13 @@ function AggTable({ title, rows }: { title: string; rows: AggregatRow[] }) {
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-border-strong bg-surface/60 p-16 text-center">
-      <p className="font-display text-2xl text-ink">The board is open</p>
-      <p className="mx-auto max-w-sm font-body text-sm leading-relaxed text-ink-muted">
-        The board is empty. Be the first dare.
-      </p>
-      <Link
-        href="/dare"
-        className="press mx-auto inline-flex items-center rounded-lg bg-brand px-5 py-2.5 font-body text-sm text-ink-onbrand hover:bg-brand-hover"
-      >
-        Dare a public repo
-      </Link>
-      <code className="mx-auto rounded-lg border border-border bg-surface px-4 py-2.5 font-mono text-sm text-ink shadow-sm">
-        npx shiprank ./your-project --upload
-      </code>
-    </div>
-  );
-}
-
-function StatChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-xl border border-border bg-surface px-5 py-3.5 shadow-sm">
-      <span className="font-mono text-xl text-ink">{value}</span>
-      <span className="font-body text-xs text-ink-subtle">{label}</span>
-    </div>
-  );
-}
-
 export default async function LeaderboardPage() {
   if (!isSupabaseConfigured()) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-12">
-        <div className="rounded-xl border border-border bg-surface p-8 text-center">
-          <p className="font-body text-ink-muted">
-            Leaderboard unavailable — database not configured.
-          </p>
-        </div>
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <p className="text-center font-body text-ink-muted">
+          Board unavailable — database not configured.
+        </p>
       </div>
     );
   }
@@ -165,8 +135,6 @@ export default async function LeaderboardPage() {
   const db = getServiceClient();
   const baseCols =
     "scan_id, project_name, platform, framework, score, grade, scanned_at, station_scores";
-  // Try with provenance (post migration 00004); fall back without it so the
-  // page keeps rendering before the migration is applied.
   let raw: unknown[] | null = null;
   const withProv = await db
     .from("leaderboard_entries")
@@ -187,6 +155,13 @@ export default async function LeaderboardPage() {
   const entries = publicBoardEntries(
     (raw ?? []) as unknown as LeaderboardEntry[],
   );
+
+  const wall = [...entries]
+    .filter((e) => typeof e.scan_id === "string")
+    .sort(
+      (a, b) =>
+        new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime(),
+    );
 
   const byPlatform: Record<string, { total: number; count: number }> = {};
   const byFramework: Record<string, { total: number; count: number }> = {};
@@ -219,46 +194,67 @@ export default async function LeaderboardPage() {
     }))
     .sort((a, b) => b.avgScore - a.avgScore);
 
-  const avgScore = entries.length
-    ? Math.round(entries.reduce((s, e) => s + e.score, 0) / entries.length)
-    : 0;
-  const topScore = entries.length ? entries[0]!.score : 0;
+  const hasNumbers = platformRows.length > 0 || frameworkRows.length > 0;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-14">
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-widest text-brand">
-            Rankings
-          </span>
-          <h1 className="mt-2 font-display text-4xl text-ink">Leaderboard</h1>
-          <p className="mt-2 max-w-lg font-body text-sm leading-relaxed text-ink-muted">
-            Real scans of AI-built projects, ranked by ShipScore — a composite
-            of security, code quality, performance, accessibility, and 5 more
-            stations. Higher is better. Updated with every upload.
-          </p>
-        </div>
-        {entries.length > 0 && (
-          <div className="flex gap-3">
-            <StatChip label="projects scanned" value={entries.length.toLocaleString()} />
-            <StatChip label="average score" value={String(avgScore)} />
-            <StatChip label="top score" value={String(topScore)} />
-          </div>
-        )}
+    <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
+          LIVE
+        </span>
+        <h1 className="font-display text-4xl text-ink">Board</h1>
+        <p className="font-body text-sm text-ink-muted">
+          Public grades. Real repos. Same engine.
+        </p>
       </div>
 
-      {entries.length === 0 ? (
-        <EmptyState />
+      {wall.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="font-mono text-xs text-ink-subtle">
+            The board is empty. Be the first dare.
+          </p>
+          <Link
+            href="/dare"
+            className="font-mono text-xs text-ink hover:text-brand-ink"
+          >
+            Dare a repo →
+          </Link>
+        </div>
       ) : (
-        <>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <AggTable title="By platform" rows={platformRows} />
-            <AggTable title="By framework" rows={frameworkRows} />
-          </div>
-
-          <LeaderboardTable entries={entries} />
-        </>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {wall.map((card) => (
+            <ShipCard
+              key={card.scan_id}
+              score={card.score}
+              grade={card.grade}
+              projectName={card.project_name}
+              platform={
+                card.platform ? formatPlatformName(card.platform) : null
+              }
+              href={cardPath(card.scan_id!)}
+              size="board"
+              staticStamp
+            />
+          ))}
+        </div>
       )}
+
+      {entries.length > 0 ? (
+        <div className="flex flex-col gap-10">
+          <LeaderboardTable entries={entries} />
+          {hasNumbers ? (
+            <details className="border border-border bg-surface">
+              <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+                Numbers
+              </summary>
+              <div className="grid gap-6 border-t border-border px-5 py-6 sm:grid-cols-2">
+                <AggTable title="By platform" rows={platformRows} />
+                <AggTable title="By framework" rows={frameworkRows} />
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
