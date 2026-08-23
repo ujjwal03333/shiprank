@@ -13,7 +13,7 @@ export default async function DareJobPage({
 }) {
   const { jobId } = await params;
   return (
-    <div className="night-court min-h-[calc(100dvh-12rem)] px-6 py-16">
+    <div className="night-court flex min-h-[calc(100dvh-8rem)] flex-col justify-center px-6 py-16">
       <DareProgress jobId={jobId} />
     </div>
   );
