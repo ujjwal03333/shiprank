@@ -5,6 +5,18 @@ import Link from "next/link";
 import { lockedTweet, tweetIntentUrl } from "@/lib/tweet";
 import { cardUrl, publicAppUrl, safePublicOrigin } from "@/lib/public-url";
 
+const PRIMARY =
+  "press flex-1 rounded-[10px] bg-ink px-4 py-3 text-center font-body text-sm text-canvas hover:opacity-90";
+const SECONDARY =
+  "press flex-1 rounded-[10px] border border-border px-4 py-3 text-center font-body text-sm text-ink hover:bg-surface-raised";
+const TERTIARY =
+  "press flex-1 rounded-[10px] border border-border px-4 py-3 text-center font-mono text-xs text-ink-muted hover:text-ink";
+
+function shareIsPrimary(grade: string): boolean {
+  const g = grade.trim().toUpperCase();
+  return g === "A+" || g === "A";
+}
+
 export function ShareActions({
   scanId,
   projectName,
@@ -28,6 +40,7 @@ export function ShareActions({
   const shareUrl = cardUrl(scanId, host);
   const tweet = lockedTweet({ name: projectName, score, grade, origin: host });
   const [copied, setCopied] = useState<"link" | "image" | null>(null);
+  const pride = shareIsPrimary(grade);
 
   async function copy(kind: "link" | "image", value: string) {
     try {
@@ -39,38 +52,50 @@ export function ShareActions({
     }
   }
 
+  const share = (
+    <a
+      href={tweetIntentUrl(tweet)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={pride || !closeHref ? PRIMARY : SECONDARY}
+    >
+      Share on X
+    </a>
+  );
+
+  const close = closeHref ? (
+    <Link href={closeHref} className={pride ? SECONDARY : PRIMARY}>
+      Close this
+    </Link>
+  ) : null;
+
   return (
     <div className="flex w-full flex-col gap-2">
       <div className="flex w-full flex-col gap-2 sm:flex-row">
-        <a
-          href={tweetIntentUrl(tweet)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="press flex-1 rounded-[10px] bg-ink px-4 py-3 text-center font-body text-sm text-canvas hover:opacity-90"
-        >
-          Share on X
-        </a>
-        {closeHref ? (
-          <Link
-            href={closeHref}
-            className="press flex-1 rounded-[10px] border border-border px-4 py-3 text-center font-body text-sm text-ink hover:bg-surface-raised"
-          >
-            Close this
-          </Link>
-        ) : null}
+        {pride || !close ? (
+          <>
+            {share}
+            {close}
+          </>
+        ) : (
+          <>
+            {close}
+            {share}
+          </>
+        )}
       </div>
       <div className="flex w-full flex-col gap-2 sm:flex-row">
         <button
           type="button"
           onClick={() => copy("link", shareUrl)}
-          className="press flex-1 rounded-[10px] border border-border px-4 py-3 font-mono text-xs text-ink-muted hover:text-ink"
+          className={TERTIARY}
         >
           {copied === "link" ? "Copied" : "Copy link"}
         </button>
         <a
           href={`/api/card/${scanId}?size=og`}
           download={`${projectName}-shiprank.png`}
-          className="press flex-1 rounded-[10px] border border-border px-4 py-3 text-center font-mono text-xs text-ink-muted hover:text-ink"
+          className={TERTIARY}
         >
           Save image
         </a>
