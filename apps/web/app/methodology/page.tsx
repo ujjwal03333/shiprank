@@ -3,8 +3,7 @@ import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Methodology",
-  description:
-    "How ShipRank scores AI-built software — 9 stations, grade boundaries, check descriptions, and accuracy metrics.",
+  description: "How the grade is made. Same code, same check version, same score.",
   alternates: { canonical: "/methodology" },
 };
 
@@ -156,30 +155,26 @@ const STATIONS = [
 ];
 
 const GRADE_BOUNDARIES = [
-  { grade: "A+", min: 97, color: "#3f7d52", label: "Exceptional" },
-  { grade: "A", min: 85, color: "#3f7d52", label: "Strong" },
-  { grade: "B", min: 70, color: "#3d6e8c", label: "Good" },
-  { grade: "C", min: 55, color: "#c08a1e", label: "Needs work" },
-  { grade: "D", min: 40, color: "#b23b3b", label: "Poor" },
-  { grade: "F", min: 0, color: "#b23b3b", label: "Failing" },
+  { grade: "A+", min: 97, token: "var(--color-grade-a)", label: "Exceptional" },
+  { grade: "A", min: 85, token: "var(--color-grade-a)", label: "Strong" },
+  { grade: "B", min: 70, token: "var(--color-grade-b)", label: "Good" },
+  { grade: "C", min: 55, token: "var(--color-grade-c)", label: "Needs work" },
+  { grade: "D", min: 40, token: "var(--color-grade-d)", label: "Poor" },
+  { grade: "F", min: 0, token: "var(--color-grade-f)", label: "Failing" },
 ];
 
 export default async function MethodologyPage() {
   const scanCount = await getScanCount();
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12 flex flex-col gap-16">
-      {/* Header */}
-      <div>
-        <span className="font-mono text-xs text-brand uppercase tracking-widest">
-          How it works
+    <div className="mx-auto max-w-2xl px-6 py-16 flex flex-col gap-14">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
+          GRADE
         </span>
-        <h1 className="font-display text-3xl text-ink mt-2">Methodology</h1>
-        <p className="font-body text-base text-ink-muted mt-3 max-w-2xl leading-relaxed">
-          ShipRank runs deterministic static analysis across 9 quality
-          stations. No LLM in the loop — every check is a pattern match or
-          structural test against your source code, so the same project always
-          produces the same score. Station scores are weighted and combined
-          into a single ShipScore (0–100).
+        <h1 className="font-display text-3xl text-ink">How the grade is made</h1>
+        <p className="max-w-md font-body text-sm leading-relaxed text-ink-muted">
+          Same code. Same check version. Same score. Static analysis — no LLM
+          in the scoring path.
         </p>
       </div>
 
@@ -201,10 +196,7 @@ export default async function MethodologyPage() {
                   <td className="px-5 py-3">
                     <span
                       className="font-mono text-sm font-medium px-2 py-0.5 rounded"
-                      style={{
-                        backgroundColor: `${g.color}18`,
-                        color: g.color,
-                      }}
+                      style={{ color: g.token }}
                     >
                       {g.grade}
                     </span>
@@ -227,10 +219,11 @@ export default async function MethodologyPage() {
         </p>
       </section>
 
-      {/* Stations */}
-      <section className="flex flex-col gap-6">
-        <h2 className="font-display text-xl text-ink">Stations</h2>
-        <div className="flex flex-col gap-5">
+      <details className="border border-border bg-surface">
+        <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+          Stations
+        </summary>
+        <div className="flex flex-col gap-5 border-t border-border px-5 py-6">
           {STATIONS.map((station) => (
             <div
               key={station.id}
@@ -276,12 +269,13 @@ export default async function MethodologyPage() {
             </div>
           ))}
         </div>
-      </section>
+      </details>
 
-      {/* Fingerprint */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-xl text-ink">Platform Fingerprint</h2>
-        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+      <details className="border border-border bg-surface">
+        <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+          Platform fingerprint
+        </summary>
+        <div className="border-t border-border px-5 py-6">
           <p className="font-body text-sm text-ink-muted leading-relaxed">
             ShipRank detects which AI platform generated your code — Lovable,
             Bolt, Cursor, V0, and others — by analyzing comment patterns,
@@ -297,22 +291,20 @@ export default async function MethodologyPage() {
             .
           </p>
         </div>
-      </section>
+      </details>
 
-      {/* Remediation */}
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-xl text-ink">Remediation Ranking</h2>
-        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+      <details className="border border-border bg-surface">
+        <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+          How one contract is picked
+        </summary>
+        <div className="border-t border-border px-5 py-6">
           <p className="font-body text-sm text-ink-muted leading-relaxed">
-            The &ldquo;Fix these 3&rdquo; recommendations are sorted by ROI: score gain per
-            minute of implementation effort. A failing SEO check that takes 5
-            minutes to fix ranks above a failing security check that takes 2
-            hours — even if the security check is labeled critical. The critical
-            label is severity information; the fix list is time-to-score
-            optimization. Fix critical issues regardless of their ROI position.
+            Close issues one contract: the highest-severity failing check.
+            Severity is not a sales ranking. Critical stays critical. The rest
+            of the findings sit in Evidence.
           </p>
         </div>
-      </section>
+      </details>
     </div>
   );
 }
