@@ -10,7 +10,7 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
     return (
       <div className="flex w-full flex-col gap-3 border border-border bg-surface px-6 py-8 text-center">
         <p className="font-display text-2xl text-ink">Nothing blocking.</p>
-        <p className="font-body text-sm text-ink-muted">Stamp a License.</p>
+        <p className="font-body text-sm text-ink-muted">Share the Card.</p>
       </div>
     );
   }
@@ -37,9 +37,11 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           Contract 01
         </span>
-        <span className="font-mono text-[11px] text-ink-subtle">
-          +{contract.estimatedDelta} est.
-        </span>
+        {typeof contract.estimatedDelta === "number" ? (
+          <span className="font-mono text-[11px] text-ink-subtle">
+            +{contract.estimatedDelta} est.
+          </span>
+        ) : null}
       </div>
       <h2 className="font-display text-2xl leading-tight text-ink sm:text-3xl">
         {contract.title}

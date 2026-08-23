@@ -34,9 +34,24 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  if (!isSupabaseConfigured()) {
+    return { title: "Close", description: "Close a ShipRank contract." };
+  }
+  const db = getServiceClient();
+  const { data } = await db
+    .from("scans")
+    .select("grade, provenance, projects ( name )")
+    .eq("id", id)
+    .single();
+  if (!data || data["provenance"] === "seed") {
+    return { title: "Close", description: "Close a ShipRank contract." };
+  }
+  const project = data["projects"] as { name?: string } | null;
+  const name = project?.name ?? "Untitled";
+  const grade = (data["grade"] as string) ?? "F";
   return {
-    title: `Scan ${id.slice(0, 8)}…`,
-    description: "ShipRank scan result — quality, security, and growth report.",
+    title: `${name} is a ${grade}`,
+    description: "One contract. Close it.",
   };
 }
 
@@ -498,50 +513,58 @@ export default async function ScanPage({
     : project?.framework ?? null;
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
-      <ShipCard
-        score={typedScan.score}
-        grade={typedScan.grade}
-        projectName={project?.name ?? "Unnamed project"}
-        platform={platform}
-        meta={
-          project?.metadata?.fileCount != null
-            ? `${project.metadata.fileCount} files`
-            : undefined
-        }
-        size="hero"
-        staticStamp
-      />
+    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-8 px-6 py-16">
+      <div className="w-full">
+        <ShipCard
+          score={typedScan.score}
+          grade={typedScan.grade}
+          projectName={project?.name ?? "Unnamed project"}
+          platform={platform}
+          meta={
+            project?.metadata?.fileCount != null
+              ? `${project.metadata.fileCount} files`
+              : undefined
+          }
+          size="hero"
+          staticStamp
+        />
+      </div>
 
-      <ShareActions
-        scanId={typedScan.id}
-        projectName={project?.name ?? "This project"}
-        score={typedScan.score}
-        grade={typedScan.grade}
-        origin={APP_URL}
-      />
+      <div className="w-full">
+        <ShareActions
+          scanId={typedScan.id}
+          projectName={project?.name ?? "This project"}
+          score={typedScan.score}
+          grade={typedScan.grade}
+          origin={APP_URL}
+        />
+      </div>
 
-      <CloseContract contract={contract} />
+      <div className="w-full">
+        <CloseContract contract={contract} />
+      </div>
 
-      {velocity ? (
-        <div className="flex items-center justify-center gap-3">
-          <VelocityPill
-            label={formatVelocityLabel(velocity)}
-            direction={velocity.direction}
-          />
-          {scannedAt ? (
-            <span className="font-mono text-xs text-ink-subtle" title={new Date(scannedAt).toLocaleString()}>
-              {timeAgo(scannedAt)}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      <details id="stations" className="border border-border bg-surface">
+      <details className="w-full border border-border bg-surface">
         <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
-          Stations and evidence
+          Evidence
         </summary>
         <div className="flex flex-col gap-6 border-t border-border px-5 py-6">
+          {velocity ? (
+            <div className="flex items-center gap-3">
+              <VelocityPill
+                label={formatVelocityLabel(velocity)}
+                direction={velocity.direction}
+              />
+              {scannedAt ? (
+                <span
+                  className="font-mono text-xs text-ink-subtle"
+                  title={new Date(scannedAt).toLocaleString()}
+                >
+                  {timeAgo(scannedAt)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           {typedScan.station_results.length >= 3 && (
             <StationRadar
               current={currentStationScores}
