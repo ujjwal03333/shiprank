@@ -191,7 +191,8 @@ html {
   .chip-pop,
   .grow-bar,
   .letter-land,
-  .letter-stamp {
+  .letter-stamp,
+  .score-perfect {
     animation: none;
   }
   html {

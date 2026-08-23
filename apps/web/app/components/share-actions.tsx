@@ -70,7 +70,7 @@ export function ShareActions({
   ) : null;
 
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full min-w-0 flex-col gap-2">
       <div className="flex w-full flex-col gap-2 sm:flex-row">
         {pride || !close ? (
           <>

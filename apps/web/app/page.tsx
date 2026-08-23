@@ -56,7 +56,7 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pb-20">
+      <section className="mx-auto w-full min-w-0 max-w-6xl px-6 pb-20">
         {cards.length === 0 ? (
           <p className="text-center font-mono text-xs text-ink-subtle">
             The board is empty. Be the first dare.
@@ -66,9 +66,12 @@ export default async function HomePage() {
             <p className="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-ink-subtle">
               LIVE
             </p>
-            <div className="flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible">
+            <div className="flex min-w-0 snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible">
               {cards.map((card) => (
-                <div key={card.scanId} className="min-w-[260px] flex-1 snap-start">
+                <div
+                  key={card.scanId}
+                  className="w-[min(260px,85vw)] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:flex-1"
+                >
                   <ShipCard
                     score={card.score}
                     grade={card.grade}

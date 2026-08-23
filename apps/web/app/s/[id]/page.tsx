@@ -96,8 +96,8 @@ export default async function PublicCardPage({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6 py-16">
-      <div className="w-full max-w-lg">
+    <div className="flex min-h-dvh min-w-0 flex-col items-center justify-center gap-8 px-6 py-16">
+      <div className="w-full min-w-0 max-w-lg">
         <ShipCard
           score={card.score}
           grade={card.grade}
@@ -108,8 +108,8 @@ export default async function PublicCardPage({
           staticStamp
         />
       </div>
-      <div className="w-full max-w-lg">
-        <ShareActions
+      <div className="w-full min-w-0 max-w-lg">
+        <ShareActions>
           scanId={card.id}
           projectName={card.projectName}
           score={card.score}

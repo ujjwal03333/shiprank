@@ -12,7 +12,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   if (bare) {
     return (
-      <main id="main-content" className="night-court min-h-dvh">
+      <main id="main-content" className="night-court min-h-dvh min-w-0">
         {children}
       </main>
     );
@@ -23,7 +23,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       <PageLoadingBar />
       <CommandPalette />
       <SiteNav />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="min-w-0 flex-1">
         {children}
       </main>
       <SiteFooter />

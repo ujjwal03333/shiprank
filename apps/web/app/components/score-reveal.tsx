@@ -15,9 +15,8 @@ export interface ScoreRevealProps {
 }
 
 /**
- * Theatrical stamp. Sequence:
- * hold → letter → count-up → meta → verdict → wordmark → actions.
- * Reduced motion skips to the end state.
+ * Stamp: letter is always in layout. Motion users get a CSS stamp + count-up.
+ * Reduced motion skips to the end state with no hide/show jump.
  */
 export function ScoreReveal({
   score,
@@ -28,37 +27,21 @@ export function ScoreReveal({
   animate = true,
   children,
 }: ScoreRevealProps) {
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const play = animate && !reduced;
-  const [phase, setPhase] = useState(play ? 0 : 6);
-  const [shown, setShown] = useState(play ? 0 : score);
+  const [shown, setShown] = useState(score);
+  const [stamp, setStamp] = useState(false);
 
   useEffect(() => {
-    if (!play) {
-      setPhase(6);
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (!animate || reduced) {
       setShown(score);
+      setStamp(false);
       return;
     }
 
-    const timers = [
-      window.setTimeout(() => setPhase(1), 400),
-      window.setTimeout(() => setPhase(2), 580),
-      window.setTimeout(() => setPhase(3), 1100),
-      window.setTimeout(() => setPhase(4), 1280),
-      window.setTimeout(() => setPhase(5), 1680),
-      window.setTimeout(() => setPhase(6), 1960),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [play, score]);
-
-  useEffect(() => {
-    if (phase < 2) return;
-    if (!play) {
-      setShown(score);
-      return;
-    }
+    setStamp(true);
+    setShown(0);
     const start = performance.now();
     const ms = 500;
     let raf = 0;
@@ -70,33 +53,29 @@ export function ScoreReveal({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase, play, score]);
+  }, [animate, score]);
 
   const letterClass = gradeLetterClass(grade);
   const verdict = cardLine(score);
   const chip = [visiblePlatform(platform), meta].filter(Boolean).join("  ·  ");
-  const show = (min: number) =>
-    phase >= min ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2";
 
   return (
-    <div className="night-court flex w-full flex-col items-center">
+    <div className="night-court flex w-full min-w-0 flex-col items-center">
       <div
-        className={`flex w-full flex-col items-center gap-5 rounded-[10px] border border-border px-6 py-12 text-center sm:px-10 sm:py-14 ${
-          score >= 97 && phase >= 1 ? "score-perfect" : ""
+        className={`flex w-full min-w-0 flex-col items-center gap-5 rounded-[10px] border border-border px-6 py-12 text-center sm:px-10 sm:py-14 ${
+          score >= 97 ? "score-perfect" : ""
         }`}
       >
         <span
           className={`font-display text-[7.5rem] font-medium leading-none tracking-[-0.04em] sm:text-[10rem] ${letterClass} ${
-            phase >= 1 ? "letter-stamp" : "opacity-0"
+            stamp ? "letter-stamp" : ""
           }`}
           style={{ fontOpticalSizing: "auto" }}
         >
           {grade}
         </span>
-        <div className="flex flex-col items-center gap-1.5">
-          <p
-            className={`font-mono text-sm text-ink-muted transition-all duration-200 ${show(2)}`}
-          >
+        <div className="flex min-w-0 max-w-full flex-col items-center gap-1.5">
+          <p className="max-w-full break-words font-mono text-sm text-ink-muted">
             <span className="text-ink">{shown}</span>
             <span className="text-ink-subtle">
               {"  ·  "}
@@ -104,31 +83,19 @@ export function ScoreReveal({
             </span>
           </p>
           {chip ? (
-            <p
-              className={`font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle transition-all duration-200 ${show(3)}`}
-            >
+            <p className="max-w-full break-words font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
               {chip}
             </p>
           ) : null}
-          <p
-            className={`mt-2 font-display text-xl tracking-tight text-ink transition-all duration-200 sm:text-2xl ${show(4)}`}
-          >
+          <p className="mt-2 font-display text-xl tracking-tight text-ink sm:text-2xl">
             {verdict}
           </p>
         </div>
-        <span
-          className={`font-mono text-[10px] uppercase tracking-[0.32em] text-ink-muted transition-all duration-200 ${show(5)}`}
-        >
+        <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-ink-muted">
           SHIPRANK
         </span>
       </div>
-      <div
-        className={`mt-8 w-full transition-all duration-300 ${
-          phase >= 6 ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3"
-        }`}
-      >
-        {children}
-      </div>
+      {children ? <div className="mt-8 w-full min-w-0">{children}</div> : null}
     </div>
   );
 }

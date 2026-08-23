@@ -197,7 +197,7 @@ export default async function LeaderboardPage() {
   const hasNumbers = platformRows.length > 0 || frameworkRows.length > 0;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14">
+    <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-12 px-6 py-14">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           LIVE

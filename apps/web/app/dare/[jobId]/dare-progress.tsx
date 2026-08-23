@@ -141,7 +141,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
     }
 
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-col items-center">
+      <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col items-center">
         <ScoreReveal
           score={score}
           grade={grade}
@@ -195,7 +195,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
   ].filter(Boolean) as string[];
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-12">
+    <div className="mx-auto flex w-full min-w-0 max-w-md flex-col gap-12">
       <p className="truncate font-mono text-xs text-ink-subtle">{job.repo_url}</p>
       <ol className="flex flex-col gap-6">
         {ACTS.map((act, i) => {
@@ -215,7 +215,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
                 {done ? `${act.label} ✓` : act.label}
               </span>
               {active && chips.length > 0 ? (
-                <p className="font-mono text-xs text-ink-muted">
+                <p className="break-words font-mono text-xs text-ink-muted">
                   {chips.join("  ·  ")}
                 </p>
               ) : null}

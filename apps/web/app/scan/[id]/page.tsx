@@ -513,8 +513,8 @@ export default async function ScanPage({
     : project?.framework ?? null;
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-8 px-6 py-16">
-      <div className="w-full">
+    <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col items-center gap-8 px-6 py-16">
+      <div className="w-full min-w-0">
         <ShipCard
           score={typedScan.score}
           grade={typedScan.grade}
@@ -530,7 +530,7 @@ export default async function ScanPage({
         />
       </div>
 
-      <div className="w-full">
+      <div className="w-full min-w-0">
         <ShareActions
           scanId={typedScan.id}
           projectName={project?.name ?? "This project"}
@@ -540,15 +540,15 @@ export default async function ScanPage({
         />
       </div>
 
-      <div className="w-full">
+      <div className="w-full min-w-0">
         <CloseContract contract={contract} />
       </div>
 
-      <details className="w-full border border-border bg-surface">
+      <details className="w-full min-w-0 border border-border bg-surface">
         <summary className="cursor-pointer px-5 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
           Evidence
         </summary>
-        <div className="flex flex-col gap-6 border-t border-border px-5 py-6">
+        <div className="flex min-w-0 flex-col gap-6 overflow-x-auto border-t border-border px-5 py-6">
           {velocity ? (
             <div className="flex items-center gap-3">
               <VelocityPill

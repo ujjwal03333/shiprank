@@ -54,7 +54,7 @@ export function DareForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full flex-col gap-3">
+    <form onSubmit={onSubmit} className="flex w-full min-w-0 flex-col gap-3">
       <label htmlFor="repo-url" className="sr-only">
         GitHub repository URL
       </label>
@@ -72,17 +72,17 @@ export function DareForm() {
         spellCheck={false}
         required
         aria-invalid={invalidAfterBlur || !!error}
-        className="w-full rounded-[10px] border border-border bg-surface px-4 py-4 text-center font-mono text-base text-ink placeholder:text-ink-subtle shadow-sm"
+        className="w-full min-w-0 rounded-[10px] border border-border bg-surface px-4 py-4 text-center font-mono text-base text-ink placeholder:text-ink-subtle shadow-sm"
       />
       <button
         type="submit"
         disabled={disabled}
-        className="press rounded-[10px] bg-ink px-5 py-3.5 font-body text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
+        className="press w-full rounded-[10px] bg-ink px-5 py-3.5 font-body text-sm font-medium text-canvas hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "Daring…" : "Dare"}
       </button>
       {(error || invalidAfterBlur) && (
-        <p role="alert" className="font-body text-sm text-danger-ink">
+        <p role="alert" className="break-words font-body text-sm text-danger-ink">
           {error ?? INVALID_URL}
         </p>
       )}

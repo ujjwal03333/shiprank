@@ -4,8 +4,8 @@ const linkClass =
 export function SiteFooter() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-body text-sm text-ink-muted">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <p className="min-w-0 break-words font-body text-sm text-ink-muted">
           Don&apos;t ship AI-built software without a ShipRank.
         </p>
         <nav

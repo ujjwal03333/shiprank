@@ -42,7 +42,7 @@ export function ShipCard({
 
   const inner = (
     <div
-      className={`night-court flex w-full flex-col items-center gap-5 rounded-[10px] border border-border px-6 py-12 text-center sm:px-10 sm:py-14 ${
+      className={`night-court flex w-full min-w-0 flex-col items-center gap-5 rounded-[10px] border border-border px-6 py-12 text-center sm:px-10 sm:py-14 ${
         score >= 97 ? "score-perfect" : ""
       }`}
     >
@@ -52,8 +52,8 @@ export function ShipCard({
       >
         {grade}
       </span>
-      <div className="flex flex-col items-center gap-1.5">
-        <p className="font-mono text-sm text-ink-muted">
+      <div className="flex min-w-0 max-w-full flex-col items-center gap-1.5">
+        <p className="max-w-full break-words font-mono text-sm text-ink-muted">
           <span className="text-ink">{score}</span>
           <span className="text-ink-subtle">
             {"  ·  "}
@@ -61,7 +61,7 @@ export function ShipCard({
           </span>
         </p>
         {chip ? (
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
+          <p className="max-w-full break-words font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
             {chip}
           </p>
         ) : null}
@@ -77,7 +77,7 @@ export function ShipCard({
 
   if (href) {
     return (
-      <Link href={href} className="block w-full transition-opacity hover:opacity-95">
+      <Link href={href} className="block w-full min-w-0 transition-opacity hover:opacity-95">
         {inner}
       </Link>
     );
