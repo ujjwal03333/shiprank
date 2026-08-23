@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 
 const ITEMS = [
   { href: "/", title: "Home", hint: "dare license ship" },
-  { href: "/dare", title: "Dare a repo", hint: "github public scan" },
-  { href: "/leaderboard", title: "Board", hint: "rankings cards scores" },
-  { href: "/pricing", title: "Pricing", hint: "close license checkout" },
-  { href: "/dashboard", title: "Dashboard", hint: "monitor projects" },
-  { href: "/methodology", title: "Methodology", hint: "checks grades stations" },
-  { href: "/models", title: "Model rankings", hint: "claude gpt cursor" },
-  { href: "/about", title: "About", hint: "ujjwal contact" },
+  { href: "/dare", title: "Dare", hint: "github public repo" },
+  { href: "/leaderboard", title: "Board", hint: "cards grades wall" },
+  { href: "/methodology", title: "Methodology", hint: "checks grades" },
+  { href: "/about", title: "About", hint: "who contact" },
   { href: "/privacy", title: "Privacy", hint: "data cookies" },
   { href: "/terms", title: "Terms", hint: "legal" },
+  { href: "/pricing", title: "Pricing", hint: "close license" },
 ];
 
 function score(query: string, item: (typeof ITEMS)[number]): number {
@@ -89,7 +87,7 @@ export function CommandPalette() {
               go(results[active]!.href);
             }
           }}
-          placeholder="Search pages, start a dare, open compile…"
+          placeholder="Search pages, start a dare…"
           className="w-full border-b border-border bg-transparent px-4 py-3 font-body text-sm text-ink outline-none placeholder:text-ink-subtle"
         />
         <ul className="max-h-72 overflow-y-auto py-1">
