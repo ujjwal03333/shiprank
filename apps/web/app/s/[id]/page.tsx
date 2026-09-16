@@ -87,7 +87,7 @@ export default async function PublicCardPage({
   if (!card) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="font-display text-2xl text-ink">This card is gone.</p>
+        <h1 className="font-display text-2xl text-ink">This card is gone.</h1>
         <Link href="/dare" className="font-mono text-xs text-ink-subtle hover:text-ink">
           Dare a repo →
         </Link>
@@ -97,6 +97,9 @@ export default async function PublicCardPage({
 
   return (
     <div className="flex min-h-dvh min-w-0 flex-col items-center justify-center gap-8 px-6 py-16">
+      <h1 className="sr-only">
+        {card.projectName} is a {card.grade}
+      </h1>
       <div className="w-full min-w-0 max-w-lg">
         <ShipCard
           score={card.score}

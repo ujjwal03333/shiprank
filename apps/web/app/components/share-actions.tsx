@@ -40,15 +40,18 @@ export function ShareActions({
   const shareUrl = cardUrl(scanId, host);
   const tweet = lockedTweet({ name: projectName, score, grade, origin: host });
   const [copied, setCopied] = useState<"link" | "image" | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const pride = shareIsPrimary(grade);
 
   async function copy(kind: "link" | "image", value: string) {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(kind);
+      setCopyError(null);
       window.setTimeout(() => setCopied(null), 2000);
     } catch {
-      /* clipboard blocked */
+      setCopied(null);
+      setCopyError("Couldn’t copy. Select the link and copy it yourself.");
     }
   }
 
@@ -100,6 +103,11 @@ export function ShareActions({
           Save image
         </a>
       </div>
+      {copyError ? (
+        <p role="alert" className="text-center font-body text-sm text-danger-ink">
+          {copyError}
+        </p>
+      ) : null}
       {dareBack ? (
         <Link
           href="/dare"

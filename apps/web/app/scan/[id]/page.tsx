@@ -514,6 +514,9 @@ export default async function ScanPage({
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col items-center gap-8 px-6 py-16">
+      <h1 className="sr-only">
+        {project?.name ?? "Unnamed project"} is a {typedScan.grade}
+      </h1>
       <div className="w-full min-w-0">
         <ShipCard
           score={typedScan.score}

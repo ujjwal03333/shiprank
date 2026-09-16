@@ -31,6 +31,7 @@ export default function Error({
         </p>
       )}
       <button
+        type="button"
         onClick={reset}
         className="press mt-8 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-body text-sm font-medium text-ink-onbrand shadow-sm transition-colors hover:bg-brand-hover"
       >

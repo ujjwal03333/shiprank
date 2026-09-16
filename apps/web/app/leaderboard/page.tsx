@@ -136,6 +136,7 @@ export default async function LeaderboardPage() {
   const baseCols =
     "scan_id, project_name, platform, framework, score, grade, scanned_at, station_scores";
   let raw: unknown[] | null = null;
+  let loadError = false;
   const withProv = await db
     .from("leaderboard_entries")
     .select(baseCols + ", provenance")
@@ -149,7 +150,12 @@ export default async function LeaderboardPage() {
       .select(baseCols)
       .order("score", { ascending: false })
       .limit(100);
-    raw = base.data;
+    if (base.error) {
+      loadError = true;
+      raw = [];
+    } else {
+      raw = base.data;
+    }
   }
 
   const entries = publicBoardEntries(
@@ -208,7 +214,19 @@ export default async function LeaderboardPage() {
         </p>
       </div>
 
-      {wall.length === 0 ? (
+      {loadError ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="font-body text-sm text-ink-muted">
+            Couldn&apos;t load the board. Try again in a minute.
+          </p>
+          <Link
+            href="/dare"
+            className="font-mono text-xs text-ink hover:text-brand-ink"
+          >
+            Dare a repo →
+          </Link>
+        </div>
+      ) : wall.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <p className="font-mono text-xs text-ink-subtle">
             The board is empty. Be the first dare.

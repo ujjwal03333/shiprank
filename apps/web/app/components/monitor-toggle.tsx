@@ -36,6 +36,7 @@ export function MonitorToggle({
   return (
     <div className="flex items-center gap-3">
       <button
+        type="button"
         onClick={enable}
         disabled={state === "loading"}
         className="press rounded-md bg-ink px-4 py-2 font-body text-sm text-canvas transition-colors hover:bg-brand-hover disabled:opacity-60"

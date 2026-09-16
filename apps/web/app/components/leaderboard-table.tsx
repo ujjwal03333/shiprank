@@ -97,7 +97,7 @@ function FilterSelect({
       aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-md border border-border bg-surface px-3 py-1.5 font-body text-xs text-ink outline-none transition-colors focus:border-brand/50"
+      className="rounded-md border border-border bg-surface px-3 py-1.5 font-body text-xs text-ink transition-colors focus:border-brand/50"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -275,6 +275,7 @@ export function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
           </span>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={clampedPage === 0}
               className="press rounded-md border border-border bg-surface px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-40"
@@ -282,6 +283,7 @@ export function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
               ← Prev
             </button>
             <button
+              type="button"
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={clampedPage >= totalPages - 1}
               className="press rounded-md border border-border bg-surface px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-40"

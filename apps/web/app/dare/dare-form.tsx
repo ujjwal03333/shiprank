@@ -54,7 +54,11 @@ export function DareForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full min-w-0 flex-col gap-3">
+    <form
+      onSubmit={onSubmit}
+      aria-busy={pending}
+      className="flex w-full min-w-0 flex-col gap-3"
+    >
       <label htmlFor="repo-url" className="sr-only">
         GitHub repository URL
       </label>

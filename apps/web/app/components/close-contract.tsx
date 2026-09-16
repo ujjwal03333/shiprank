@@ -5,6 +5,7 @@ import type { ShipContract } from "@/lib/contract";
 
 export function CloseContract({ contract }: { contract: ShipContract | null }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   if (!contract) {
     return (
@@ -20,9 +21,11 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
     try {
       await navigator.clipboard.writeText(contract.prompt);
       setCopied(true);
+      setCopyError(null);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard blocked */
+      setCopied(false);
+      setCopyError("Couldn’t copy. Select the prompt and copy it yourself.");
     }
   }
 
@@ -75,8 +78,13 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
         onClick={() => void copyPrompt()}
         className="press w-full rounded-[10px] bg-ink px-4 py-3 font-body text-sm text-canvas hover:opacity-90"
       >
-        {copied ? "Copied" : "Send to agent"}
+        {copied ? "Copied" : "Copy prompt"}
       </button>
+      {copyError ? (
+        <p role="alert" className="text-center font-body text-sm text-danger-ink">
+          {copyError}
+        </p>
+      ) : null}
     </div>
   );
 }

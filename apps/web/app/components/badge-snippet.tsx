@@ -13,14 +13,17 @@ export function BadgeSnippet({
   const verifyUrl = `${appUrl}/verify/${scanId}`;
   const markdown = `[![ShipRank](${badgeUrl})](${verifyUrl})`;
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(markdown);
       setCopied(true);
+      setCopyError(null);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      /* clipboard unavailable */
+      setCopied(false);
+      setCopyError("Couldn’t copy. Select the snippet and copy it yourself.");
     }
   }
 
@@ -41,12 +44,18 @@ export function BadgeSnippet({
           {markdown}
         </code>
         <button
+          type="button"
           onClick={copy}
           className="press shrink-0 rounded-lg bg-ink px-4 py-2.5 font-body text-sm text-canvas transition-colors hover:bg-brand-hover"
         >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {copyError ? (
+        <p role="alert" className="font-body text-sm text-danger-ink">
+          {copyError}
+        </p>
+      ) : null}
     </div>
   );
 }

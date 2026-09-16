@@ -14,6 +14,9 @@ export default function DarePage() {
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           DARE
         </span>
+        <h1 className="font-display text-3xl tracking-tight text-ink sm:text-4xl">
+          Paste a public GitHub URL.
+        </h1>
         <DareForm />
         <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink-subtle">
           Public · read-only · on the board

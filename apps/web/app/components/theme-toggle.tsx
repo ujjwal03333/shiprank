@@ -60,6 +60,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={cycle}
       aria-label={`Theme: ${theme}${theme === "system" ? ` (${resolved})` : ""}. Click to switch.`}
       title={`Theme: ${theme}`}

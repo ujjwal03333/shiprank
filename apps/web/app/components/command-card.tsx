@@ -57,19 +57,23 @@ function wait(ms: number) {
 
 export function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable */
+      setCopied(false);
+      setCopyError(true);
     }
   }
 
   return (
     <button
+      type="button"
       onClick={copy}
       className="press flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs text-ink-subtle transition-colors hover:border-border-strong hover:text-ink"
       aria-label={`Copy ${label ?? "text"}`}
@@ -87,6 +91,8 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
           </svg>
           <span className="text-success-ink">Copied!</span>
         </>
+      ) : copyError ? (
+        <span className="text-danger-ink">Couldn’t copy</span>
       ) : (
         <>
           <svg width={SMALL_ICON_SIZE} height={SMALL_ICON_SIZE} viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} fill="none">

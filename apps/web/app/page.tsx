@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DareForm } from "./dare/dare-form";
 import { ShipCard } from "./components/ship-card";
 import { getLiveCards } from "@/lib/live-cards";
@@ -29,7 +30,7 @@ const jsonLd = {
 };
 
 export default async function HomePage() {
-  const cards = await getLiveCards(3);
+  const { cards, error: boardError } = await getLiveCards(3);
 
   return (
     <div className="night-court flex flex-col">
@@ -57,7 +58,15 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto w-full min-w-0 max-w-6xl px-6 pb-20">
-        {cards.length === 0 ? (
+        {boardError ? (
+          <p className="text-center font-body text-sm text-ink-muted">
+            Couldn&apos;t load the board.{" "}
+            <Link href="/dare" className="text-ink hover:text-brand-ink">
+              Dare a repo anyway
+            </Link>
+            .
+          </p>
+        ) : cards.length === 0 ? (
           <p className="text-center font-mono text-xs text-ink-subtle">
             The board is empty. Be the first dare.
           </p>

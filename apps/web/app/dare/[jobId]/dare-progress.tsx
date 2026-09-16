@@ -91,7 +91,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
   if (error) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-12 text-center">
-        <p className="font-display text-2xl text-ink">Couldn&apos;t load this dare</p>
+        <h1 className="font-display text-2xl text-ink">Couldn&apos;t load this dare</h1>
         <p className="font-body text-sm text-ink-muted">{error}</p>
         <Link
           href="/dare"
@@ -106,6 +106,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
   if (!job) {
     return (
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-12">
+        <h1 className="sr-only">Daring this repo</h1>
         <div className="skeleton h-3 w-48 rounded" />
         <ol className="flex flex-col gap-6">
           {ACTS.map((act) => (
@@ -129,7 +130,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
     if (score == null) {
       return (
         <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
-          <p className="font-display text-2xl text-ink">Couldn&apos;t stamp a grade</p>
+          <h1 className="font-display text-2xl text-ink">Couldn&apos;t stamp a grade</h1>
           <Link
             href="/dare"
             className="press rounded-[10px] bg-ink px-5 py-3 font-body text-sm text-canvas"
@@ -142,6 +143,9 @@ export function DareProgress({ jobId }: { jobId: string }) {
 
     return (
       <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col items-center">
+        <h1 className="sr-only">
+          {name} is a {grade}
+        </h1>
         <ScoreReveal
           score={score}
           grade={grade}
@@ -171,7 +175,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
   if (job.status === "failed") {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-12 text-center">
-        <p className="font-display text-2xl text-ink">Couldn&apos;t finish this dare</p>
+        <h1 className="font-display text-2xl text-ink">Couldn&apos;t finish this dare</h1>
         <p className="font-body text-sm leading-relaxed text-ink-muted">
           {job.error_message ?? "This repo is private, too big, or gone."}
         </p>
@@ -196,6 +200,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-md flex-col gap-12">
+      <h1 className="sr-only">Daring {job.repo_url}</h1>
       <p className="truncate font-mono text-xs text-ink-subtle">{job.repo_url}</p>
       <ol className="flex flex-col gap-6">
         {ACTS.map((act, i) => {

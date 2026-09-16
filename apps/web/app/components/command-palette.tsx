@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const ITEMS = [
@@ -58,15 +59,18 @@ export function CommandPalette() {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-start justify-center bg-ink/30 px-4 pt-[15vh] backdrop-blur-[2px]"
-      onClick={() => setOpen(false)}
-    >
+    <div className="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[15vh]">
+      <button
+        type="button"
+        aria-label="Close command palette"
+        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
+        onClick={() => setOpen(false)}
+      />
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Command palette"
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
       >
         <input
           aria-label="Search commands"
@@ -88,7 +92,7 @@ export function CommandPalette() {
             }
           }}
           placeholder="Search pages, start a dare…"
-          className="w-full border-b border-border bg-transparent px-4 py-3 font-body text-sm text-ink outline-none placeholder:text-ink-subtle"
+          className="w-full border-b border-border bg-transparent px-4 py-3 font-body text-sm text-ink placeholder:text-ink-subtle"
         />
         <ul className="max-h-72 overflow-y-auto py-1">
           {results.length === 0 && (
@@ -96,17 +100,17 @@ export function CommandPalette() {
           )}
           {results.map((item, i) => (
             <li key={item.href}>
-              <button
-                type="button"
+              <Link
+                href={item.href}
                 onMouseEnter={() => setActive(i)}
-                onClick={() => go(item.href)}
-                className={`flex w-full items-center justify-between px-4 py-2.5 text-left font-body text-sm ${
+                onClick={() => setOpen(false)}
+                className={`flex min-h-11 w-full items-center justify-between px-4 py-2.5 text-left font-body text-sm ${
                   i === active ? "bg-brand-soft text-brand-ink" : "text-ink"
                 }`}
               >
                 <span>{item.title}</span>
                 <span className="font-mono text-[10px] text-ink-subtle">{item.href}</span>
-              </button>
+              </Link>
             </li>
           ))}
         </ul>

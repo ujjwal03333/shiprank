@@ -11,8 +11,10 @@ export interface LiveCard {
 /**
  * Latest public Cards on the board. Real rows only — never fabricated.
  */
-export async function getLiveCards(limit = 3): Promise<LiveCard[]> {
-  if (!isSupabaseConfigured()) return [];
+export async function getLiveCards(
+  limit = 3,
+): Promise<{ cards: LiveCard[]; error: boolean }> {
+  if (!isSupabaseConfigured()) return { cards: [], error: true };
 
   try {
     const db = getServiceClient();
@@ -24,18 +26,21 @@ export async function getLiveCards(limit = 3): Promise<LiveCard[]> {
       .order("scanned_at", { ascending: false })
       .limit(limit);
 
-    if (error || !data) return [];
+    if (error || !data) return { cards: [], error: true };
 
-    return data
-      .filter((row) => typeof row["scan_id"] === "string")
-      .map((row) => ({
-        scanId: row["scan_id"] as string,
-        projectName: (row["project_name"] as string) ?? "Untitled",
-        score: (row["score"] as number) ?? 0,
-        grade: (row["grade"] as string) ?? "F",
-        platform: (row["platform"] as string | null) ?? null,
-      }));
+    return {
+      cards: data
+        .filter((row) => typeof row["scan_id"] === "string")
+        .map((row) => ({
+          scanId: row["scan_id"] as string,
+          projectName: (row["project_name"] as string) ?? "Untitled",
+          score: (row["score"] as number) ?? 0,
+          grade: (row["grade"] as string) ?? "F",
+          platform: (row["platform"] as string | null) ?? null,
+        })),
+      error: false,
+    };
   } catch {
-    return [];
+    return { cards: [], error: true };
   }
 }
