@@ -109,7 +109,7 @@ export default async function PublicCardPage({
         />
       </div>
       <div className="w-full min-w-0 max-w-lg">
-        <ShareActions>
+        <ShareActions
           scanId={card.id}
           projectName={card.projectName}
           score={card.score}
