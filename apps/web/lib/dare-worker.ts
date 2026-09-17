@@ -184,6 +184,10 @@ export async function processDareJob(jobId: string): Promise<void> {
       severity: string;
       passed: boolean;
       visibility: "public" | "heldout";
+      filePath?: string | null;
+      lineNumber?: number | null;
+      snippet?: string | null;
+      fixSuggestion?: string | null;
     }> = [];
     for (const s of stations) {
       if (s.implemented === 0) continue;

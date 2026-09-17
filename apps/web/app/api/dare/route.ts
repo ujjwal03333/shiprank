@@ -85,7 +85,10 @@ export async function POST(request: Request) {
     job = await createDareJob(
       repo.url,
       parsed.data.parentScanId
-        ? { parentScanId: parsed.data.parentScanId, previousScore }
+        ? {
+            parentScanId: parsed.data.parentScanId,
+            ...(typeof previousScore === "number" ? { previousScore } : {}),
+          }
         : undefined,
     );
   } catch (err) {

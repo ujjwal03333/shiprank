@@ -83,8 +83,13 @@ export async function createDareJob(
   seed?: { parentScanId?: string; previousScore?: number },
 ): Promise<DareJob> {
   const now = new Date().toISOString();
-  const progress = seed?.parentScanId
-    ? { parentScanId: seed.parentScanId, previousScore: seed.previousScore }
+  const progress: DareProgress | null = seed?.parentScanId
+    ? {
+        parentScanId: seed.parentScanId,
+        ...(typeof seed.previousScore === "number"
+          ? { previousScore: seed.previousScore }
+          : {}),
+      }
     : null;
   if (await supabaseAvailable()) {
     const db = getServiceClient();
