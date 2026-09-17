@@ -10,6 +10,14 @@ import { complianceChecks } from "./compliance";
 import { infrastructureChecks } from "./infrastructure";
 import { heldoutChecks } from "./heldout";
 import { decisionContextFor } from "../decision-context";
+import { attachEvidenceLoc } from "../evidence";
+
+export const LICENSE_FLOOR_CHECKS = 12;
+export const VACUOUS_SCORE_CAP = 69;
+
+function isActive(check: CheckResult): boolean {
+  return check.confidence > 0 && check.applicable !== false;
+}
 
 const STATION_NAMES: Record<Station, string> = {
   security: "Security",
@@ -51,7 +59,7 @@ function severityMultiplier(profile: CodeProfile, check: CheckResult): number {
 }
 
 function scoreStation(checks: CheckResult[], profile: CodeProfile): number {
-  const active = checks.filter(c => c.confidence > 0);
+  const active = checks.filter(isActive);
   // No implemented checks: this station is omitted from overallScore.
   // Returning 100 here was a lie — an empty suite is not a perfect score.
   if (active.length === 0) return 0;
@@ -73,11 +81,11 @@ export function runChecks(profile: CodeProfile): StationScore[] {
   // never included here, so they can never influence a station or overall score.
   const results = ALL_CHECKS.map(fn => {
     const result = fn(profile);
-    return {
+    return attachEvidenceLoc({
       ...result,
       visibility: "public" as const,
       decisionContext: result.decisionContext ?? decisionContextFor(result.id),
-    };
+    });
   });
 
   const byStation = new Map<Station, CheckResult[]>();
@@ -94,7 +102,7 @@ export function runChecks(profile: CodeProfile): StationScore[] {
 
   return stations.map(station => {
     const checks = byStation.get(station) ?? [];
-    const implemented = checks.filter(c => c.confidence > 0).length;
+    const implemented = checks.filter(isActive).length;
     return {
       station,
       name: STATION_NAMES[station],
@@ -118,11 +126,17 @@ export function runHeldoutChecks(profile: CodeProfile): CheckResult[] {
   }));
 }
 
+export function applicableCheckCount(stationScores: StationScore[]): number {
+  return stationScores.reduce((n, s) => n + s.implemented, 0);
+}
+
 export function overallScore(stationScores: StationScore[]): number {
-  // Equal weight across stations that actually have implemented checks.
-  // Stub-only stations (implemented === 0) are excluded — they are not 100.
   const scored = stationScores.filter((s) => s.implemented > 0);
   if (scored.length === 0) return 0;
   const sum = scored.reduce((s, ss) => s + ss.score, 0);
-  return Math.round(sum / scored.length);
+  const raw = Math.round(sum / scored.length);
+  if (applicableCheckCount(stationScores) < LICENSE_FLOOR_CHECKS) {
+    return Math.min(raw, VACUOUS_SCORE_CAP);
+  }
+  return raw;
 }

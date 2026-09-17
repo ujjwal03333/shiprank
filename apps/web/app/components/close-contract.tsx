@@ -3,7 +3,13 @@
 import { useState } from "react";
 import type { ShipContract } from "@/lib/contract";
 
-export function CloseContract({ contract }: { contract: ShipContract | null }) {
+export function CloseContract({
+  contract,
+  redareHref,
+}: {
+  contract: ShipContract | null;
+  redareHref?: string | null;
+}) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
 
@@ -40,24 +46,26 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           Contract 01
         </span>
-        {typeof contract.estimatedDelta === "number" ? (
+        {contract.remainingAfter > 0 ? (
           <span className="font-mono text-[11px] text-ink-subtle">
-            +{contract.estimatedDelta} est.
+            {contract.remainingAfter} after this
           </span>
         ) : null}
       </div>
       <h2 className="break-words font-display text-2xl leading-tight text-ink sm:text-3xl">
         {contract.title}
       </h2>
-      <p className="font-body text-sm leading-relaxed text-ink-muted">
-        <span className="text-ink-subtle">Why the AI did this. </span>
-        {contract.why}
-      </p>
+      {contract.agentAttributed && contract.why ? (
+        <p className="font-body text-sm leading-relaxed text-ink-muted">
+          <span className="text-ink-subtle">Why the AI did this. </span>
+          {contract.why}
+        </p>
+      ) : null}
       {loc ? (
         <p className="break-all font-mono text-xs text-ink-subtle">{loc}</p>
       ) : (
         <p className="font-mono text-xs text-ink-subtle">
-          Evidence is in the tree — send the prompt to the agent.
+          No file:line on this check — close it from the prompt.
         </p>
       )}
       {contract.snippet ? (
@@ -80,6 +88,14 @@ export function CloseContract({ contract }: { contract: ShipContract | null }) {
       >
         {copied ? "Copied" : "Copy prompt"}
       </button>
+      {redareHref ? (
+        <a
+          href={redareHref}
+          className="press w-full rounded-[10px] border border-border px-4 py-3 text-center font-body text-sm text-ink hover:bg-surface-raised"
+        >
+          Re-dare after the fix
+        </a>
+      ) : null}
       {copyError ? (
         <p role="alert" className="text-center font-body text-sm text-danger-ink">
           {copyError}

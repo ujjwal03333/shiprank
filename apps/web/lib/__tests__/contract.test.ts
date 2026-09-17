@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickContract, estimateDelta, defaultAgentPrompt } from "../contract";
+import { pickContract, estimateDelta, defaultAgentPrompt, isAgentPlatform } from "../contract";
 import type { FindingRow } from "../plan-gating";
 
 function finding(partial: Partial<FindingRow> & Pick<FindingRow, "checkId" | "title">): FindingRow {
@@ -27,12 +27,12 @@ describe("pickContract", () => {
   it("picks the highest-severity failure", () => {
     const c = pickContract([
       finding({ checkId: "QUAL-001", title: "no tests", severity: "low" }),
-      finding({ checkId: "SEC-003", title: "RLS off", severity: "critical" }),
+      finding({ checkId: "SEC-003", title: "RLS off", severity: "critical", filePath: "supabase/schema.sql", lineNumber: 4 }),
       finding({ checkId: "PERF-001", title: "images", severity: "medium" }),
     ]);
     expect(c?.checkId).toBe("SEC-003");
     expect(c?.estimatedDelta).toBe(8);
-    expect(c?.why.length).toBeGreaterThan(10);
+    expect(c?.remainingAfter).toBe(2);
   });
 
   it("embeds the fix as the Do this step, not as the whole prompt", () => {

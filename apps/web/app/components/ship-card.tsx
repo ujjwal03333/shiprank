@@ -15,6 +15,7 @@ export interface ShipCardProps {
   size?: "hero" | "board";
   /** When true, skip entrance animation (static /s, board, OG-matching). */
   staticStamp?: boolean;
+  previousScore?: number | null;
 }
 
 /**
@@ -31,6 +32,7 @@ export function ShipCard({
   href,
   size = "board",
   staticStamp = false,
+  previousScore = null,
 }: ShipCardProps) {
   const letterClass = gradeLetterClass(grade);
   const verdict = line ?? cardLine(score);
@@ -55,6 +57,9 @@ export function ShipCard({
       <div className="flex min-w-0 max-w-full flex-col items-center gap-1.5">
         <p className="max-w-full break-words font-mono text-sm text-ink-muted">
           <span className="text-ink">{score}</span>
+          {typeof previousScore === "number" && previousScore !== score ? (
+            <span className="text-ink-subtle">{`  ←  ${previousScore}`}</span>
+          ) : null}
           <span className="text-ink-subtle">
             {"  ·  "}
             {projectName}

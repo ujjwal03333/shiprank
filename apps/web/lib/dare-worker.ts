@@ -32,6 +32,8 @@ export interface DareProgress {
   score?: number;
   grade?: string;
   platform?: string;
+  parentScanId?: string;
+  previousScore?: number;
 }
 
 async function countFiles(dir: string, depth = 0): Promise<number> {
@@ -188,6 +190,7 @@ export async function processDareJob(jobId: string): Promise<void> {
       stationScores[s.station] = s.score;
       for (const c of s.checks) {
         if (c.confidence <= 0) continue;
+        if (c.applicable === false) continue;
         checkResults.push({
           checkId: c.id,
           station: s.station,
@@ -195,6 +198,10 @@ export async function processDareJob(jobId: string): Promise<void> {
           severity: c.severity,
           passed: c.passed,
           visibility: c.visibility ?? "public",
+          filePath: c.filePath ?? null,
+          lineNumber: c.lineNumber ?? null,
+          snippet: c.evidence || null,
+          fixSuggestion: c.fixPrompt || null,
         });
       }
     }
@@ -244,7 +251,12 @@ export async function processDareJob(jobId: string): Promise<void> {
               stationScores,
               checkResults,
             },
-            { forceNew: true, source: "dare" },
+            {
+              forceNew: true,
+              source: "dare",
+              parentScanId: claimed.progress?.parentScanId ?? null,
+              previousScore: claimed.progress?.previousScore ?? null,
+            },
           ),
           new Promise<never>((_, reject) => {
             setTimeout(() => reject(new Error("Leaderboard ingest timed out")), 20_000);

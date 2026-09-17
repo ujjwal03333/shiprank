@@ -21,7 +21,7 @@ describe("overallScore", () => {
   it("excludes stub-only stations even if their stored score is 100", () => {
     expect(
       overallScore([
-        station("security", 80, 5),
+        station("security", 80, 12),
         station("architecture", 100, 0),
         station("data", 100, 0),
         station("compliance", 100, 0),
@@ -43,6 +43,10 @@ describe("overallScore", () => {
   it("returns 0 when no station has implemented checks", () => {
     expect(overallScore([station("architecture", 0, 0)])).toBe(0);
     expect(overallScore([])).toBe(0);
+  });
+
+  it("caps a tree with too few applicable checks at C", () => {
+    expect(overallScore([station("security", 90, 4), station("quality", 90, 4)])).toBe(69);
   });
 });
 

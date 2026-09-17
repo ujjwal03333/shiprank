@@ -78,13 +78,19 @@ export function getSupabaseProbeError(): string | null {
   return supabaseProbeError;
 }
 
-export async function createDareJob(repoUrl: string): Promise<DareJob> {
+export async function createDareJob(
+  repoUrl: string,
+  seed?: { parentScanId?: string; previousScore?: number },
+): Promise<DareJob> {
   const now = new Date().toISOString();
+  const progress = seed?.parentScanId
+    ? { parentScanId: seed.parentScanId, previousScore: seed.previousScore }
+    : null;
   if (await supabaseAvailable()) {
     const db = getServiceClient();
     const { data, error } = await db
       .from("scan_jobs")
-      .insert({ repo_url: repoUrl, status: "queued", progress_stage: "Queued" })
+      .insert({ repo_url: repoUrl, status: "queued", progress_stage: "Queued", progress })
       .select("id, repo_url, status, progress_stage, progress, scan_id, error_message, created_at, completed_at")
       .single();
     if (!error && data) return data as DareJob;
@@ -103,7 +109,7 @@ export async function createDareJob(repoUrl: string): Promise<DareJob> {
     repo_url: repoUrl,
     status: "queued",
     progress_stage: "Queued",
-    progress: null,
+    progress,
     scan_id: null,
     error_message: null,
     created_at: now,

@@ -41,6 +41,7 @@ describe("shiprank MCP tools (via real SDK client/server)", () => {
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "shiprank_check_diff",
+      "shiprank_contract",
       "shiprank_get_rules",
       "shiprank_scan",
     ]);

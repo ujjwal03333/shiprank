@@ -16,12 +16,13 @@ async function loadCard(id: string) {
   const { data } = await db
     .from("scans")
     .select(
-      "id, score, grade, provenance, projects ( name, framework, platform, metadata )",
+      "id, score, grade, provenance, metadata, projects ( name, framework, platform, metadata )",
     )
     .eq("id", id)
     .single();
   if (!data) return null;
   if (data["provenance"] === "seed") return null;
+  const metaRow = data["metadata"] as { previousScore?: number | null } | null;
   const project = data["projects"] as {
     name?: string;
     framework?: string | null;
@@ -40,6 +41,8 @@ async function loadCard(id: string) {
       project?.metadata?.fileCount != null
         ? `${project.metadata.fileCount} files`
         : undefined,
+    previousScore:
+      typeof metaRow?.previousScore === "number" ? metaRow.previousScore : null,
   };
 }
 
@@ -109,6 +112,7 @@ export default async function PublicCardPage({
           meta={card.meta}
           size="hero"
           staticStamp
+          previousScore={card.previousScore}
         />
       </div>
       <div className="w-full min-w-0 max-w-lg">

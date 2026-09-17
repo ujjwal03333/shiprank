@@ -33,20 +33,24 @@ const checkA11Y001: CheckFn = (profile) => {
   };
 
   const hits: string[] = [];
+  let seen = 0;
   for (const file of profile.files) {
     if (!JSX_EXTS.has(file.ext) || !file.content) continue;
-    // <img without alt or alt="" — img tag that doesn't have alt=
     const imgMatches = [...file.content.matchAll(/<img\b[^>]*>/gi)];
+    seen += imgMatches.length;
     for (const m of imgMatches) {
       if (!/\balt\s*=/.test(m[0])) hits.push(`${file.path}: ${m[0].slice(0, 60)}`);
     }
-    // <Image (next/image) without alt
     const nextImgMatches = [...file.content.matchAll(/<Image\b[^/]*(?:\/>|>)/g)];
+    seen += nextImgMatches.length;
     for (const m of nextImgMatches) {
       if (!/\balt\s*=/.test(m[0])) hits.push(`${file.path}: <Image> without alt`);
     }
   }
 
+  if (seen === 0) {
+    return { ...base, passed: true, applicable: false, failMessage: "", evidence: "" };
+  }
   if (hits.length === 0) return { ...base, passed: true, failMessage: "", evidence: "" };
   return {
     ...base, passed: false,
@@ -75,19 +79,23 @@ const checkA11Y002: CheckFn = (profile) => {
   };
 
   const hits: string[] = [];
+  let seen = 0;
   for (const file of profile.files) {
     if (!JSX_EXTS.has(file.ext) || !file.content) continue;
     const matches = [...file.content.matchAll(INPUT_RE)];
     for (const m of matches) {
       const attrs = m[1] ?? "";
-      // Skip hidden inputs
       if (/type\s*=\s*['"]hidden['"]/.test(attrs)) continue;
+      seen += 1;
       if (!LABEL_ASSOCIATION_RE.test(attrs)) {
         hits.push(`${file.path}: <${m[0].slice(1, m[0].indexOf(" ") || 20)}>`);
       }
     }
   }
 
+  if (seen === 0) {
+    return { ...base, passed: true, applicable: false, failMessage: "", evidence: "" };
+  }
   if (hits.length === 0) return { ...base, passed: true, failMessage: "", evidence: "" };
   return {
     ...base, passed: false,
@@ -116,6 +124,9 @@ const checkA11Y003: CheckFn = (profile) => {
   };
 
   const cssFiles = profile.files.filter(f => CSS_EXTS.has(f.ext) && f.content);
+  if (cssFiles.length === 0) {
+    return { ...base, passed: true, applicable: false, failMessage: "", evidence: "" };
+  }
 
   let removesOutline = false;
   let hasFocusVisible = false;
@@ -162,6 +173,9 @@ const checkA11Y004: CheckFn = (profile) => {
 
   const hits: string[] = [];
   const cssFiles = profile.files.filter(f => CSS_EXTS.has(f.ext) && f.content);
+  if (cssFiles.length === 0) {
+    return { ...base, passed: true, applicable: false, failMessage: "", evidence: "" };
+  }
   for (const file of cssFiles) {
     for (const re of LOW_CONTRAST_PATTERNS) {
       if (re.test(file.content)) {

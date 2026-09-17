@@ -104,6 +104,60 @@ export async function checkDiff(
   );
 }
 
+export async function getContract(dir: string): Promise<{
+  checkId: string;
+  title: string;
+  filePath: string | null;
+  lineNumber: number | null;
+  prompt: string;
+  remainingAfter: number;
+} | null> {
+  const root = resolve(dir);
+  const profile = await buildCodeProfile(root);
+  const stations = runChecks(profile);
+  const failing = stations
+    .flatMap((s) => s.checks)
+    .filter((c) => c.confidence > 0 && c.applicable !== false && !c.passed);
+  if (failing.length === 0) return null;
+  const ranked = [...failing].sort((a, b) => {
+    const ea = a.filePath ? 0 : 1;
+    const eb = b.filePath ? 0 : 1;
+    if (ea !== eb) return ea - eb;
+    const rank = { critical: 0, warning: 1, info: 2 } as Record<string, number>;
+    return (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9);
+  });
+  const c = ranked[0]!;
+  const loc =
+    c.filePath != null
+      ? `${c.filePath}${c.lineNumber != null ? `:${c.lineNumber}` : ""}`
+      : null;
+  const prompt = [
+    "Close this ShipRank contract. Do not start other work.",
+    "",
+    `Contract: ${c.id} — ${c.title}`,
+    loc ? `Where: ${loc}` : "Where: search the repo for this failure.",
+    "",
+    "Do this:",
+    c.fixPrompt || "Make the smallest change that makes this check pass.",
+    "",
+    "Rules:",
+    `- Smallest change that makes ${c.id} pass.`,
+    "- Do not refactor unrelated files.",
+    "",
+    "Verify:",
+    "npx shiprank",
+    `This check must pass: ${c.id}`,
+  ].join("\n");
+  return {
+    checkId: c.id,
+    title: c.title,
+    filePath: c.filePath ?? null,
+    lineNumber: c.lineNumber ?? null,
+    prompt,
+    remainingAfter: Math.max(0, failing.length - 1),
+  };
+}
+
 /** AGENTS.md content for `dir`, generated from the current check findings. */
 export async function getRules(dir: string): Promise<string> {
   const root = resolve(dir);

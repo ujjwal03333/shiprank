@@ -42,6 +42,13 @@ export interface CheckResult {
   visibility?: CheckVisibility;
   /** Deterministic archaeology record. Frequency is filled by the web layer. */
   decisionContext?: DecisionContext;
+  /**
+   * false = check does not apply to this tree (no inputs, no images, …).
+   * N/A checks are excluded from scoring. Omitted ⇒ applicable.
+   */
+  applicable?: boolean;
+  filePath?: string | null;
+  lineNumber?: number | null;
 }
 
 export interface DecisionContext {

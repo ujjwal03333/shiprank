@@ -7,7 +7,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/dare" },
 };
 
-export default function DarePage() {
+export default async function DarePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ repo?: string; parent?: string }>;
+}) {
+  const q = await searchParams;
   return (
     <div className="night-court flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center px-6 py-16 text-center">
       <div className="flex w-full max-w-lg flex-col items-center gap-8">
@@ -17,7 +22,7 @@ export default function DarePage() {
         <h1 className="font-display text-3xl tracking-tight text-ink sm:text-4xl">
           Paste a public GitHub URL.
         </h1>
-        <DareForm />
+        <DareForm initialRepo={q.repo ?? ""} parentScanId={q.parent ?? null} />
         <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-ink-subtle">
           Public · read-only · on the board
         </p>

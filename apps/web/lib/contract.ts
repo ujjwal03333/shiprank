@@ -10,16 +10,38 @@ const SEVERITY_RANK: Record<string, number> = {
   info: 4,
 };
 
+const AGENT_PLATFORMS = new Set([
+  "cursor",
+  "bolt",
+  "lovable",
+  "replit",
+  "v0",
+  "base44",
+  "claude-code",
+  "claude code",
+]);
+
 export interface ShipContract {
   checkId: string;
   title: string;
-  why: string;
+  why: string | null;
   filePath: string | null;
   lineNumber: number | null;
   snippet: string | null;
   prompt: string;
   estimatedDelta: number;
   severity: string;
+  remainingAfter: number;
+  agentAttributed: boolean;
+}
+
+export interface PickContractOptions {
+  platform?: string | null;
+}
+
+export function isAgentPlatform(platform: string | null | undefined): boolean {
+  if (!platform) return false;
+  return AGENT_PLATFORMS.has(platform.trim().toLowerCase());
 }
 
 export function estimateDelta(severity: string): number {
@@ -27,6 +49,11 @@ export function estimateDelta(severity: string): number {
   if (severity === "high") return 5;
   if (severity === "warning" || severity === "medium") return 3;
   return 2;
+}
+
+function locate(f: FindingRow): { filePath: string | null; lineNumber: number | null } {
+  if (f.filePath) return { filePath: f.filePath, lineNumber: f.lineNumber };
+  return { filePath: null, lineNumber: null };
 }
 
 export function defaultAgentPrompt(finding: {
@@ -41,10 +68,7 @@ export function defaultAgentPrompt(finding: {
     finding.filePath != null
       ? `${finding.filePath}${finding.lineNumber != null ? `:${finding.lineNumber}` : ""}`
       : null;
-  const how =
-    finding.how?.trim() ||
-    "Make the smallest change that makes this check pass.";
-
+  const how = finding.how?.trim() || "Make the smallest change that makes this check pass.";
   return [
     "Close this ShipRank contract. Do not start other work.",
     "",
@@ -67,44 +91,49 @@ export function defaultAgentPrompt(finding: {
     .join("\n");
 }
 
-/**
- * One contract. Highest-leverage unfinished thing.
- * Findings are evidence — this is the only case the product issues.
- */
-export function pickContract(findings: FindingRow[]): ShipContract | null {
+function closable(f: FindingRow): boolean {
+  return locate(f).filePath != null || Boolean(f.fixSuggestion);
+}
+
+export function pickContract(
+  findings: FindingRow[],
+  options: PickContractOptions = {},
+): ShipContract | null {
   const failing = findings.filter((f) => !f.passed);
   if (failing.length === 0) return null;
-
   const sorted = [...failing].sort((a, b) => {
+    const ea = closable(a) ? 0 : 1;
+    const eb = closable(b) ? 0 : 1;
+    if (ea !== eb) return ea - eb;
     const da = SEVERITY_RANK[a.severity] ?? 9;
     const db = SEVERITY_RANK[b.severity] ?? 9;
     if (da !== db) return da - db;
     return a.checkId.localeCompare(b.checkId);
   });
-  const f = sorted[0]!;
+  const f = (sorted.filter(closable)[0] ?? sorted[0])!;
+  const loc = locate(f);
   const ctx = decisionContextFor(f.checkId);
-  const why =
-    ctx?.probableCause ??
-    ctx?.aiPattern ??
-    "The agent optimized for a demo, not for shipping.";
+  const agentAttributed = isAgentPlatform(options.platform);
+  const why = agentAttributed ? (ctx?.probableCause ?? ctx?.aiPattern ?? null) : null;
   const how = f.fixSuggestion ?? ctx?.whatShouldBe ?? null;
-
   return {
     checkId: f.checkId,
     title: f.title,
     why,
-    filePath: f.filePath,
-    lineNumber: f.lineNumber,
+    filePath: loc.filePath,
+    lineNumber: loc.lineNumber,
     snippet: f.snippet,
     prompt: defaultAgentPrompt({
       checkId: f.checkId,
       title: f.title,
-      filePath: f.filePath,
-      lineNumber: f.lineNumber,
+      filePath: loc.filePath,
+      lineNumber: loc.lineNumber,
       why,
       how,
     }),
     estimatedDelta: estimateDelta(f.severity),
     severity: f.severity,
+    remainingAfter: Math.max(0, failing.length - 1),
+    agentAttributed,
   };
 }

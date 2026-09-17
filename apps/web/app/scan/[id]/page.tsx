@@ -97,6 +97,7 @@ interface Scan {
   scan_mode: string | null;
   started_at: string | null;
   completed_at: string | null;
+  metadata: { parentScanId?: string | null; previousScore?: number | null } | null;
   projects: Project | null;
   station_results: StationResult[];
   fingerprints: Fingerprint[];
@@ -402,7 +403,7 @@ export default async function ScanPage({
   const { data: scan, error } = await db
     .from("scans")
     .select(
-      `id, status, score, grade, provenance, station_count, scan_mode, started_at, completed_at,
+      `id, status, score, grade, provenance, station_count, scan_mode, started_at, completed_at, metadata,
        projects ( id, name, framework, platform, url, repo_url, metadata ),
        station_results ( id, station, score, grade, pass_count, warn_count, fail_count ),
        fingerprints ( platform, confidence, signals, metadata )`,
@@ -471,7 +472,9 @@ export default async function ScanPage({
     typedScan.station_results.map((s) => s.id),
   );
   const findings = gateFindingsForPlan(rawFindings, resolvedPlan.plan);
-  const contract = pickContract(rawFindings);
+  const contract = pickContract(rawFindings, {
+    platform: project?.platform ?? typedScan.fingerprints[0]?.platform ?? null,
+  });
   const failingFindings = findings.filter((f) => !f.passed);
   const prevalenceMap = await fetchCheckPrevalence(
     db,
@@ -530,6 +533,7 @@ export default async function ScanPage({
           }
           size="hero"
           staticStamp
+          previousScore={typedScan.metadata?.previousScore ?? null}
         />
       </div>
 
@@ -539,12 +543,22 @@ export default async function ScanPage({
           projectName={project?.name ?? "This project"}
           score={typedScan.score}
           grade={typedScan.grade}
+          closeHref="#contract"
           origin={APP_URL}
         />
       </div>
 
-      <div className="w-full min-w-0">
-        <CloseContract contract={contract} />
+      <div id="contract" className="w-full min-w-0">
+        <CloseContract
+          contract={contract}
+          redareHref={
+            project?.repo_url
+              ? `/dare?repo=${encodeURIComponent(project.repo_url)}&parent=${typedScan.id}`
+              : project?.name?.includes("/")
+                ? `/dare?repo=${encodeURIComponent(`https://github.com/${project.name}`)}&parent=${typedScan.id}`
+                : "/dare"
+          }
+        />
       </div>
 
       <details className="w-full min-w-0 border border-border bg-surface">

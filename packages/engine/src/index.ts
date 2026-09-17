@@ -16,7 +16,15 @@ export { buildFingerprint, detectPlatform, inferModel, computeAiRatio } from "./
 export type { Platform, PlatformDetection, ModelInference, AiRatio, Fingerprint } from "./fingerprint/types";
 export { buildRemediationPlan, parseMinutes } from "./remediation";
 export type { RemediationItem, RemediationPlan, AutoFixClass } from "./remediation";
-export { runChecks, overallScore, runHeldoutChecks } from "./checks/engine";
+export {
+  runChecks,
+  overallScore,
+  runHeldoutChecks,
+  applicableCheckCount,
+  LICENSE_FLOOR_CHECKS,
+  VACUOUS_SCORE_CAP,
+} from "./checks/engine";
+export { parseEvidenceLoc, attachEvidenceLoc } from "./evidence";
 export { computeFailFrequencies, getElevatedConstraints } from "./feedback-loop";
 export type { CheckFrequency, ScanCheckRecord } from "./feedback-loop";
 export { computeContentHash } from "./attestation";

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { runFullScan, checkDiff, getRules } from "./scan.js";
+import { runFullScan, checkDiff, getRules, getContract } from "./scan.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -33,6 +33,23 @@ export function createServer(): McpServer {
       const findings = await checkDiff(path, files);
       return {
         content: [{ type: "text", text: JSON.stringify(findings, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    "shiprank_contract",
+    "Return the single highest-leverage failing ShipRank check (Contract 01) plus an agent prompt that closes it.",
+    { path: z.string().describe("Absolute or relative path to the project root") },
+    async ({ path }) => {
+      const contract = await getContract(path);
+      return {
+        content: [{
+          type: "text",
+          text: contract
+            ? JSON.stringify(contract, null, 2)
+            : JSON.stringify({ ok: true, message: "Nothing blocking." }),
+        }],
       };
     },
   );

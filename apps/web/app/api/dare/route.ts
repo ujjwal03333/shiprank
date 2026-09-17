@@ -12,9 +12,11 @@ import {
 import { processDareJob } from "@/lib/dare-worker";
 import { createDareJob } from "@/lib/dare-store";
 import { dareRateLimitBypassed } from "@/lib/seed-guard";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const BodySchema = z.object({
   repoUrl: z.string().min(3).max(300),
+  parentScanId: z.string().uuid().optional(),
 });
 
 export async function POST(request: Request) {
@@ -68,9 +70,24 @@ export async function POST(request: Request) {
     );
   }
 
+  let previousScore: number | undefined;
+  if (parsed.data.parentScanId && isSupabaseConfigured()) {
+    const { data } = await getServiceClient()
+      .from("scans")
+      .select("score")
+      .eq("id", parsed.data.parentScanId)
+      .maybeSingle();
+    if (typeof data?.["score"] === "number") previousScore = data["score"];
+  }
+
   let job;
   try {
-    job = await createDareJob(repo.url);
+    job = await createDareJob(
+      repo.url,
+      parsed.data.parentScanId
+        ? { parentScanId: parsed.data.parentScanId, previousScore }
+        : undefined,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not create dare job.";
     return NextResponse.json({ error: message }, { status: 503 });

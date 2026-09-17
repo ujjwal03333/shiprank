@@ -32,6 +32,10 @@ export interface CheckResultPayload {
   severity: string;
   passed: boolean;
   visibility: "public" | "heldout";
+  filePath?: string | null;
+  lineNumber?: number | null;
+  snippet?: string | null;
+  fixSuggestion?: string | null;
 }
 
 // Engine severity → DB severity enum ('critical'|'high'|'medium'|'low'|'info')
@@ -71,6 +75,8 @@ export interface IngestResult {
 export interface IngestOptions {
   forceNew?: boolean;
   source?: string;
+  parentScanId?: string | null;
+  previousScore?: number | null;
 }
 
 export async function ingestUpload(
@@ -142,6 +148,8 @@ export async function ingestUpload(
         fileCount: payload.fileCount,
         lineCount: payload.lineCount,
         aggregateEligible: meetsSybilFloor(payload),
+        parentScanId: options.parentScanId ?? null,
+        previousScore: options.previousScore ?? null,
       },
     })
     .select("id, created_at")
@@ -190,6 +198,10 @@ export async function ingestUpload(
           severity: SEVERITY_MAP[c.severity] ?? "info",
           passed: c.passed,
           visibility: c.visibility,
+          file_path: c.filePath ?? null,
+          line_number: c.lineNumber ?? null,
+          snippet: c.snippet ?? null,
+          fix_suggestion: c.fixSuggestion ?? null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);

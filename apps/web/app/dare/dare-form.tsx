@@ -8,9 +8,15 @@ const INVALID_URL = "Use a public GitHub URL like github.com/user/repo.";
 const RATE_LIMIT =
   "Three dares per hour. Try later, or run npx shiprank locally.";
 
-export function DareForm() {
+export function DareForm({
+  initialRepo = "",
+  parentScanId = null,
+}: {
+  initialRepo?: string;
+  parentScanId?: string | null;
+}) {
   const router = useRouter();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialRepo);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -34,7 +40,10 @@ export function DareForm() {
       const res = await fetch("/api/dare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl: value }),
+        body: JSON.stringify({
+          repoUrl: value,
+          ...(parentScanId ? { parentScanId } : {}),
+        }),
       });
       const data = (await res.json()) as { jobId?: string; error?: string };
       if (res.status === 429) {

@@ -299,9 +299,7 @@ export default async function MethodologyPage() {
         </summary>
         <div className="border-t border-border px-5 py-6">
           <p className="font-body text-sm text-ink-muted leading-relaxed">
-            Close issues one contract: the highest-severity failing check.
-            Severity is not a sales ranking. Critical stays critical. The rest
-            of the findings sit in Evidence.
+            Close issues one contract: the highest-severity failing check that has a file path. Checks that cannot fire on the tree are N/A and do not score. A tree with fewer than 12 applicable checks cannot license above C. “Why the AI did this” only renders when the profiler saw an agent.
           </p>
         </div>
       </details>
