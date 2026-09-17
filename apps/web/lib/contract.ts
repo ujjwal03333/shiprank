@@ -92,7 +92,7 @@ export function defaultAgentPrompt(finding: {
 }
 
 function closable(f: FindingRow): boolean {
-  return locate(f).filePath != null || Boolean(f.fixSuggestion);
+  return locate(f).filePath != null;
 }
 
 export function pickContract(
@@ -110,7 +110,9 @@ export function pickContract(
     if (da !== db) return da - db;
     return a.checkId.localeCompare(b.checkId);
   });
-  const f = (sorted.filter(closable)[0] ?? sorted[0])!;
+  const pointed = sorted.filter(closable);
+  if (pointed.length === 0) return null; // UI: "Nothing we can point at"
+  const f = pointed[0]!;
   const loc = locate(f);
   const ctx = decisionContextFor(f.checkId);
   const agentAttributed = isAgentPlatform(options.platform);

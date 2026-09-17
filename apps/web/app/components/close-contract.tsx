@@ -16,7 +16,7 @@ export function CloseContract({
   if (!contract) {
     return (
       <div className="flex w-full flex-col gap-3 border border-border bg-surface px-6 py-8 text-center">
-        <p className="font-display text-2xl text-ink">Nothing blocking.</p>
+        <p className="font-display text-2xl text-ink">Nothing we can point at.</p>
         <p className="font-body text-sm text-ink-muted">Share the Card.</p>
       </div>
     );

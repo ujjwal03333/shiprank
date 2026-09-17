@@ -35,12 +35,22 @@ describe("pickContract", () => {
     expect(c?.remainingAfter).toBe(2);
   });
 
+  it("returns null when no failure has a file path", () => {
+    expect(
+      pickContract([
+        finding({ checkId: "QUAL-001", title: "no tests", severity: "critical" }),
+      ]),
+    ).toBeNull();
+  });
+
   it("embeds the fix as the Do this step, not as the whole prompt", () => {
     const c = pickContract([
       finding({
         checkId: "SEC-004",
         title: "client-only auth",
         severity: "critical",
+        filePath: "app/api/route.ts",
+        lineNumber: 12,
         fixSuggestion: "Guard the route.",
       }),
     ]);
