@@ -5,9 +5,11 @@ import {
   detectStack,
   getApplicableConstraints,
   renderConstraintBlock,
+  STACK_DEFS,
   type StackKey,
   type FocusMode,
 } from "./stack";
+import { scorePrompt } from "./prompt-score";
 
 export interface CompiledStep {
   name: string;
@@ -117,11 +119,89 @@ function parseSteps(
   });
 }
 
+function stackLabels(stackKeys: StackKey[]): string {
+  if (stackKeys.length === 0) {
+    return "Not specified in the prompt. Infer a conventional stack and state it.";
+  }
+  return stackKeys
+    .map((key) => STACK_DEFS.find((d) => d.key === key)?.label ?? key)
+    .join(", ");
+}
+
+/** Local brief when every provider call fails. Constraints are injected by parseSteps. */
+export function deterministicBrief(
+  prompt: string,
+  stackKeys: StackKey[],
+  focusMode: FocusMode,
+): string {
+  const score = scorePrompt(prompt, stackKeys);
+  return [
+    "## STACK",
+    stackLabels(stackKeys),
+    "",
+    "## BUILD",
+    prompt.trim(),
+    `Local prompt score: ${score.total}/100 (stack ${score.stackClarity}, security ${score.securityCoverage}, completeness ${score.completeness}, structure ${score.structure}, testability ${score.testability}).`,
+    `Focus: ${focusMode}. Do not invent APIs or providers that were not named.`,
+    "",
+    "## CONSTRAINTS",
+    "",
+    "## OUTPUT",
+    "The app matches the prompt. Named auth, data, and integrations work. Constraints below pass a ShipRank scan.",
+  ].join("\n");
+}
+
+async function tryOpenRouter(prompt: string): Promise<string> {
+  const key = process.env["OPENROUTER_API_KEY"];
+  if (!key) throw new Error("OPENROUTER_API_KEY missing");
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "deepseek/deepseek-chat",
+      messages: [
+        { role: "system", content: COMPILE_SYSTEM_PROMPT },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 8192,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) {
+    throw new Error(`openrouter ${res.status}`);
+  }
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content ?? "";
+  if (!text.trim()) throw new Error("openrouter empty");
+  return text;
+}
+
+async function tryAnthropic(client: Anthropic, prompt: string): Promise<string> {
+  const stream = await client.messages.stream({
+    model: "claude-sonnet-5",
+    max_tokens: 8192,
+    system: COMPILE_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const msg = await stream.finalMessage();
+  const raw = (msg.content as Anthropic.ContentBlock[])
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b: Anthropic.TextBlock) => b.text)
+    .join("");
+  if (!raw.trim()) throw new Error("anthropic empty");
+  return raw;
+}
+
 export async function compile(
   rawPrompt: string,
   identifier: string,
   rateLimiter: RateLimiter,
-  client: Anthropic = new Anthropic(),
+  client?: Anthropic,
   elevatedConstraints: string[] = [],
   detectedStack?: StackKey[],
   focusMode: FocusMode = "security",
@@ -133,22 +213,29 @@ export async function compile(
 
   const stackKeys = detectedStack ?? detectStack(rawPrompt);
 
-  let raw: string;
-  try {
-    const stream = await client.messages.stream({
-      model: "claude-sonnet-5",
-      max_tokens: 8192,
-      system: COMPILE_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: rawPrompt }],
-    });
-    const msg = await stream.finalMessage();
-    raw = (msg.content as Anthropic.ContentBlock[])
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b: Anthropic.TextBlock) => b.text)
-      .join("");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { kind: "api_error", message };
+  let raw: string | null = null;
+  // Injected client (tests) skips OpenRouter so mocks stay in control.
+  if (!client && process.env["OPENROUTER_API_KEY"]) {
+    try {
+      raw = await tryOpenRouter(rawPrompt);
+    } catch {
+      raw = null;
+    }
+  }
+  if (raw == null) {
+    const anthropic =
+      client ??
+      (process.env["ANTHROPIC_API_KEY"] ? new Anthropic() : undefined);
+    if (anthropic) {
+      try {
+        raw = await tryAnthropic(anthropic, rawPrompt);
+      } catch {
+        raw = null;
+      }
+    }
+  }
+  if (raw == null) {
+    raw = deterministicBrief(rawPrompt, stackKeys, focusMode);
   }
 
   const steps = parseSteps(raw, stackKeys, focusMode, elevatedConstraints);

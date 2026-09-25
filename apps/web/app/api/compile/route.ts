@@ -13,7 +13,8 @@ const CompileSchema = z.object({
 const compileLimiter = createMemoryRateLimiter(5, 24 * 60 * 60 * 1000);
 
 export async function HEAD() {
-  const hasKey = !!process.env["ANTHROPIC_API_KEY"];
+  const hasKey =
+    !!process.env["ANTHROPIC_API_KEY"] || !!process.env["OPENROUTER_API_KEY"];
   return new Response(null, { status: hasKey ? 200 : 503 });
 }
 
@@ -61,8 +62,12 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
+    console.error("[compile]", result);
     return NextResponse.json(
-      { error: "Compile temporarily unavailable. Please try again later." },
+      {
+        error: "Compile temporarily unavailable. Please try again later.",
+        reason: result.message,
+      },
       { status: 502 },
     );
   }

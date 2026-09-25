@@ -176,6 +176,28 @@ describe("compile()", () => {
     expect(c).toContain("PERF-003");
   });
 
+  it("falls back to a local brief when the model call fails", async () => {
+    const client = {
+      messages: {
+        stream: vi.fn().mockRejectedValue(new Error("credit balance too low")),
+      },
+    } as unknown as Anthropic;
+    const result = await compile(
+      "todo app with supabase auth",
+      "user-fb",
+      rateLimiter,
+      client,
+    );
+
+    expect(result).not.toHaveProperty("kind");
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.raw).toContain("## STACK");
+    expect(r.raw).toContain("## BUILD");
+    expect(r.detectedStack).toEqual(expect.arrayContaining(["supabase", "auth"]));
+    expect(r.steps[0]!.constraints.toLowerCase()).toContain("rls");
+    expect(r.steps[0]!.constraints).toContain("SEC-003");
+  });
+
   it("returns rate_limited when the limiter is exhausted", async () => {
     const tightLimiter = createMemoryRateLimiter(1, 24 * 60 * 60 * 1000);
     const client = makeClient(SINGLE_STEP_RESPONSE);
