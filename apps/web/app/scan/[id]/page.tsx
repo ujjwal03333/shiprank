@@ -25,6 +25,7 @@ import { MonitorToggle } from "@/app/components/monitor-toggle";
 import { formatPlatformName, formatModelName, timeAgo } from "@/lib/format-names";
 import { fetchCheckPrevalence, type CheckPrevalence } from "@/lib/check-prevalence";
 import { decisionContextFor } from "@/lib/decision-context";
+import { chipsFromFindings } from "@/lib/asked-vs-shipped";
 
 const APP_URL = publicAppUrl();
 
@@ -475,6 +476,7 @@ export default async function ScanPage({
   const contract = pickContract(rawFindings, {
     platform: project?.platform ?? typedScan.fingerprints[0]?.platform ?? null,
   });
+  const chips = chipsFromFindings(rawFindings);
   const failingFindings = findings.filter((f) => !f.passed);
   const prevalenceMap = await fetchCheckPrevalence(
     db,
@@ -534,6 +536,7 @@ export default async function ScanPage({
           size="hero"
           staticStamp
           previousScore={typedScan.metadata?.previousScore ?? null}
+          chips={chips}
         />
       </div>
 
@@ -551,6 +554,7 @@ export default async function ScanPage({
       <div id="contract" className="w-full min-w-0">
         <CloseContract
           contract={contract}
+          chips={chips}
           redareHref={
             project?.repo_url
               ? `/dare?repo=${encodeURIComponent(project.repo_url)}&parent=${typedScan.id}`

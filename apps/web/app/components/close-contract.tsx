@@ -2,20 +2,25 @@
 
 import { useState } from "react";
 import type { ShipContract } from "@/lib/contract";
+import { AskedChips, type AskedChip } from "./asked-chips";
 
 export function CloseContract({
   contract,
   redareHref,
+  chips = [],
 }: {
   contract: ShipContract | null;
   redareHref?: string | null;
+  chips?: readonly AskedChip[];
 }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const chipRow = chips.length > 0 ? <AskedChips chips={chips} align="start" /> : null;
 
   if (!contract) {
     return (
       <div className="flex w-full flex-col gap-3 border border-border bg-surface px-6 py-8 text-center">
+        {chipRow}
         <p className="font-display text-2xl text-ink">Nothing we can point at.</p>
         <p className="font-body text-sm text-ink-muted">Share the Card.</p>
       </div>
@@ -42,6 +47,7 @@ export function CloseContract({
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
+      {chipRow}
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-brand">
           Contract 01

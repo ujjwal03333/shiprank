@@ -7,6 +7,8 @@ import { formatPlatformName } from "@/lib/format-names";
 import { cardUrl, publicAppUrl } from "@/lib/public-url";
 import { lockedTweet } from "@/lib/tweet";
 import { cardLine } from "@/lib/grade";
+import { fetchScanFindings } from "@/lib/scan-findings";
+import { chipsFromFindings } from "@/lib/asked-vs-shipped";
 
 export const revalidate = 60;
 
@@ -16,7 +18,7 @@ async function loadCard(id: string) {
   const { data } = await db
     .from("scans")
     .select(
-      "id, score, grade, provenance, metadata, projects ( name, framework, platform, metadata )",
+      "id, score, grade, provenance, metadata, projects ( name, framework, platform, metadata ), station_results ( id )",
     )
     .eq("id", id)
     .single();
@@ -29,6 +31,10 @@ async function loadCard(id: string) {
     platform?: string | null;
     metadata?: { fileCount?: number } | null;
   } | null;
+  const stationIds = (
+    (data["station_results"] as Array<{ id: string }> | null) ?? []
+  ).map((s) => s.id);
+  const chips = chipsFromFindings(await fetchScanFindings(db, stationIds));
   return {
     id: data["id"] as string,
     score: (data["score"] as number) ?? 0,
@@ -43,6 +49,7 @@ async function loadCard(id: string) {
         : undefined,
     previousScore:
       typeof metaRow?.previousScore === "number" ? metaRow.previousScore : null,
+    chips,
   };
 }
 
@@ -113,6 +120,7 @@ export default async function PublicCardPage({
           size="hero"
           staticStamp
           previousScore={card.previousScore}
+          chips={card.chips}
         />
       </div>
       <div className="w-full min-w-0 max-w-lg">

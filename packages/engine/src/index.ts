@@ -25,6 +25,8 @@ export {
   VACUOUS_SCORE_CAP,
 } from "./checks/engine";
 export { parseEvidenceLoc, attachEvidenceLoc } from "./evidence";
+export { askedChipsFromEvidence } from "./asked-vs-shipped";
+export type { AskedChip, ChipEvidence, ShippedState } from "./asked-vs-shipped";
 export { computeFailFrequencies, getElevatedConstraints } from "./feedback-loop";
 export type { CheckFrequency, ScanCheckRecord } from "./feedback-loop";
 export { computeContentHash } from "./attestation";

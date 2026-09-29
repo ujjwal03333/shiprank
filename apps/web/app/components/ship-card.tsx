@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cardLine, gradeLetterClass } from "@/lib/grade";
 import { cardPath } from "@/lib/public-url";
 import { visiblePlatform } from "@/lib/format-names";
+import { AskedChips, type AskedChip } from "./asked-chips";
 
 export interface ShipCardProps {
   score: number;
@@ -16,6 +17,8 @@ export interface ShipCardProps {
   /** When true, skip entrance animation (static /s, board, OG-matching). */
   staticStamp?: boolean;
   previousScore?: number | null;
+  /** Asked vs shipped. Information only — never buttons. */
+  chips?: readonly AskedChip[];
 }
 
 /**
@@ -33,6 +36,7 @@ export function ShipCard({
   size = "board",
   staticStamp = false,
   previousScore = null,
+  chips = [],
 }: ShipCardProps) {
   const letterClass = gradeLetterClass(grade);
   const verdict = line ?? cardLine(score);
@@ -54,6 +58,7 @@ export function ShipCard({
       >
         {grade}
       </span>
+      {chips.length > 0 ? <AskedChips chips={chips} /> : null}
       <div className="flex min-w-0 max-w-full flex-col items-center gap-1.5">
         <p className="max-w-full break-words font-mono text-sm text-ink-muted">
           <span className="text-ink">{score}</span>
