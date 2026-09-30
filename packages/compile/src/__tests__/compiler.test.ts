@@ -198,6 +198,34 @@ describe("compile()", () => {
     expect(r.steps[0]!.constraints).toContain("SEC-003");
   });
 
+  it("appends MEMORY extras to the raw brief and CONSTRAINTS", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const memory = [
+      "- SEC-002 — Add .env to gitignore",
+      "- SEC-005 — Add security headers",
+    ];
+    const result = await compile(
+      "build a dashboard",
+      "user-mem",
+      rateLimiter,
+      client,
+      memory,
+    );
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.raw).toContain("MEMORY");
+    expect(r.raw).toContain("- SEC-002 — Add .env to gitignore");
+    expect(r.steps[0]!.constraints).toContain("MEMORY");
+    expect(r.steps[0]!.constraints).toContain("- SEC-005 — Add security headers");
+  });
+
+  it("omits MEMORY when there are no extras", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const result = await compile("build a dashboard", "user-nomem", rateLimiter, client);
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.raw).not.toContain("MEMORY");
+    expect(r.steps[0]!.constraints).not.toContain("MEMORY");
+  });
+
   it("returns rate_limited when the limiter is exhausted", async () => {
     const tightLimiter = createMemoryRateLimiter(1, 24 * 60 * 60 * 1000);
     const client = makeClient(SINGLE_STEP_RESPONSE);

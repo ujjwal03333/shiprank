@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { compile, createMemoryRateLimiter } from "@shiprank/compile";
 import { checkRateLimit, ipFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
+import { loadMemoryConstraints } from "@/lib/memory";
 
 const CompileSchema = z.object({
   prompt: z.string().min(10).max(2000),
@@ -45,12 +46,19 @@ export async function POST(request: Request) {
     );
   }
 
+  let memory: string[] = [];
+  try {
+    memory = await loadMemoryConstraints();
+  } catch {
+    memory = [];
+  }
+
   const result = await compile(
     parsed.data.prompt,
     ip,
     compileLimiter,
     undefined,
-    [],
+    memory,
     undefined,
     parsed.data.focusMode,
   );

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeFailFrequencies, getElevatedConstraints } from "../feedback-loop";
-import type { ScanCheckRecord } from "../feedback-loop";
+import {
+  computeFailFrequencies,
+  getElevatedConstraints,
+  memoryConstraintLines,
+} from "../feedback-loop";
+import type { ScanCheckRecord, MemoryFailRow } from "../feedback-loop";
 
 describe("computeFailFrequencies", () => {
   it("returns empty array for zero scans", () => {
@@ -149,5 +153,60 @@ describe("getElevatedConstraints", () => {
     expect(Array.isArray(elevated)).toBe(true);
     expect(typeof elevated[0]).toBe("string");
     expect(elevated[0]).toMatch(/^- /);
+  });
+});
+
+function failRow(
+  checkId: string,
+  title: string,
+  fixSuggestion: string | null = null,
+): MemoryFailRow {
+  return { checkId, title, fixSuggestion };
+}
+
+describe("memoryConstraintLines", () => {
+  it("returns empty when there are no fail rows", () => {
+    expect(memoryConstraintLines([])).toEqual([]);
+  });
+
+  it("takes the highest-frequency fails, at most 5, labeled by check id", () => {
+    const rows: MemoryFailRow[] = [
+      ...Array.from({ length: 9 }, () => failRow("SEC-002", "env", "Add .env to gitignore")),
+      ...Array.from({ length: 7 }, () => failRow("SEC-005", "headers", "Add security headers")),
+      ...Array.from({ length: 5 }, () => failRow("COMP-004", "delete", "Add DELETE /api/account")),
+      ...Array.from({ length: 4 }, () => failRow("SEC-003", "rls", "Enable RLS")),
+      ...Array.from({ length: 3 }, () => failRow("SEC-012", "hooks", "Verify webhook signatures")),
+      ...Array.from({ length: 2 }, () => failRow("QUAL-001", "tests", "Add tests")),
+    ];
+    const lines = memoryConstraintLines(rows);
+    expect(lines).toHaveLength(5);
+    expect(lines[0]).toBe("- SEC-002 — Add .env to gitignore");
+    expect(lines[1]).toBe("- SEC-005 — Add security headers");
+    expect(lines[2]).toBe("- COMP-004 — Add DELETE /api/account");
+    expect(lines[3]).toBe("- SEC-003 — Enable RLS");
+    expect(lines[4]).toBe("- SEC-012 — Verify webhook signatures");
+    expect(lines.join("\n")).not.toContain("QUAL-001");
+  });
+
+  it("is stable under row shuffle and ties break by checkId", () => {
+    const rows = [
+      failRow("SEC-010", "zod", "Validate with zod"),
+      failRow("SEC-004", "auth", "Check auth server-side"),
+      failRow("SEC-010", "zod", "Validate with zod"),
+      failRow("SEC-004", "auth", "Check auth server-side"),
+    ];
+    const a = memoryConstraintLines(rows);
+    const b = memoryConstraintLines([...rows].reverse());
+    expect(a).toEqual(b);
+    expect(a.map((l) => l.slice(2, 9))).toEqual(["SEC-004", "SEC-010"]);
+  });
+
+  it("falls back to title when fixSuggestion is empty, skips blank text", () => {
+    expect(
+      memoryConstraintLines([
+        failRow("SEC-001", "No hardcoded secrets", null),
+        failRow("ZZZ-000", "   ", null),
+      ]),
+    ).toEqual(["- SEC-001 — No hardcoded secrets"]);
   });
 });

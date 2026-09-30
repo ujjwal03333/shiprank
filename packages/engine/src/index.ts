@@ -27,8 +27,12 @@ export {
 export { parseEvidenceLoc, attachEvidenceLoc } from "./evidence";
 export { askedChipsFromEvidence } from "./asked-vs-shipped";
 export type { AskedChip, ChipEvidence, ShippedState } from "./asked-vs-shipped";
-export { computeFailFrequencies, getElevatedConstraints } from "./feedback-loop";
-export type { CheckFrequency, ScanCheckRecord } from "./feedback-loop";
+export {
+  computeFailFrequencies,
+  getElevatedConstraints,
+  memoryConstraintLines,
+} from "./feedback-loop";
+export type { CheckFrequency, ScanCheckRecord, MemoryFailRow } from "./feedback-loop";
 export { computeContentHash } from "./attestation";
 export type { HashableFile } from "./attestation";
 export type {

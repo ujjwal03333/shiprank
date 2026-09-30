@@ -60,10 +60,16 @@ function ensureSecurityBaseline(
   let result = constraints ? `${constraints}\n\n${dynamicBlock}` : dynamicBlock;
 
   if (elevatedConstraints.length > 0) {
-    result = `${result}\n\n${elevatedConstraints.join("\n")}`;
+    result = withMemoryBlock(result, elevatedConstraints);
   }
 
   return result;
+}
+
+/** Append MEMORY extras. Empty extras are a no-op. */
+export function withMemoryBlock(text: string, memoryLines: readonly string[]): string {
+  if (memoryLines.length === 0) return text;
+  return `${text.trimEnd()}\n\nMEMORY\n${memoryLines.join("\n")}`;
 }
 
 function parseStep(
@@ -240,7 +246,7 @@ export async function compile(
 
   const steps = parseSteps(raw, stackKeys, focusMode, elevatedConstraints);
   return {
-    raw,
+    raw: withMemoryBlock(raw, elevatedConstraints),
     steps,
     isSingleStep: steps.length === 1,
     rateLimit,

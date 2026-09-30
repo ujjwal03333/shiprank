@@ -57,3 +57,54 @@ export function getElevatedConstraints(
     .filter(f => f.failRate >= threshold && f.fixPrompt)
     .map(f => `- ${f.fixPrompt} [auto-elevated: ${Math.round(f.failRate * 100)}% fail rate across ${f.totalScans} scans]`);
 }
+
+export interface MemoryFailRow {
+  checkId: string;
+  title: string;
+  fixSuggestion: string | null;
+}
+
+const MEMORY_LIMIT = 5;
+const MEMORY_LINE_MAX = 240;
+
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Top Board failures → Compile extras. Deterministic: same rows → same lines.
+ * Empty input → []. Never invents constraints from nothing.
+ */
+export function memoryConstraintLines(
+  rows: readonly MemoryFailRow[],
+  limit = MEMORY_LIMIT,
+): string[] {
+  if (rows.length === 0 || limit <= 0) return [];
+
+  const grouped = new Map<string, { fails: number; text: string }>();
+  for (const row of rows) {
+    const text = oneLine(row.fixSuggestion ?? "") || oneLine(row.title);
+    const existing = grouped.get(row.checkId);
+    if (existing) {
+      existing.fails++;
+      if (text && (existing.text === "" || text < existing.text)) {
+        existing.text = text;
+      }
+    } else {
+      grouped.set(row.checkId, { fails: 1, text });
+    }
+  }
+
+  return [...grouped.entries()]
+    .filter(([, v]) => v.fails > 0 && v.text.length > 0)
+    .sort((a, b) => {
+      const byFails = b[1].fails - a[1].fails;
+      if (byFails !== 0) return byFails;
+      return a[0].localeCompare(b[0]);
+    })
+    .slice(0, limit)
+    .map(([checkId, v]) => {
+      const body = v.text.length > MEMORY_LINE_MAX ? v.text.slice(0, MEMORY_LINE_MAX) : v.text;
+      return `- ${checkId} — ${body}`;
+    });
+}
