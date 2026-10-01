@@ -23,7 +23,15 @@ export {
   applicableCheckCount,
   LICENSE_FLOOR_CHECKS,
   VACUOUS_SCORE_CAP,
+  isActiveCheck,
 } from "./checks/engine";
+export {
+  licenseFor,
+  verdictFor,
+  criticalCountOf,
+  failingCountOf,
+} from "./license";
+export type { License, Verdict } from "./license";
 export { parseEvidenceLoc, attachEvidenceLoc } from "./evidence";
 export { askedChipsFromEvidence } from "./asked-vs-shipped";
 export type { AskedChip, ChipEvidence, ShippedState } from "./asked-vs-shipped";

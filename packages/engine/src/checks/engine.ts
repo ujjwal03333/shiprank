@@ -15,8 +15,13 @@ import { attachEvidenceLoc } from "../evidence";
 export const LICENSE_FLOOR_CHECKS = 12;
 export const VACUOUS_SCORE_CAP = 69;
 
-function isActive(check: CheckResult): boolean {
+/** Scored checks only: stubs (confidence 0) and N/A do not count. */
+export function isActiveCheck(check: CheckResult): boolean {
   return check.confidence > 0 && check.applicable !== false;
+}
+
+function isActive(check: CheckResult): boolean {
+  return isActiveCheck(check);
 }
 
 const STATION_NAMES: Record<Station, string> = {

@@ -1,0 +1,33 @@
+# Example only. Not enabled on ujjwal03333/shiprank.
+# GitHub Actions runs every .yml in this directory, so this file does not
+# trigger on push or pull_request, and the job skips this repository.
+# Paste the 12-line block from the README into your repo as
+# .github/workflows/ship-license.yml to turn the check on.
+name: Ship License
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ship-license:
+    if: github.repository != 'ujjwal03333/shiprank'
+    name: Ship License
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # npx shiprank exits 1 on Hold. In this monorepo, after
+      # `pnpm --filter shiprank build`: node packages/cli/dist/bin.js
+      - name: Ship License
+        run: |
+          set +e
+          npx --yes shiprank >"$RUNNER_TEMP/shiprank.txt" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/shiprank.txt"
+          url=$(grep -oE 'Card: https://[^[:space:]]+' "$RUNNER_TEMP/shiprank.txt" | head -n 1 || true)
+          url=${url#Card: }
+          if [ -n "$url" ] && ! grep -qF "$url" "$GITHUB_STEP_SUMMARY"; then
+            printf '\n[Open the Card](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$code"

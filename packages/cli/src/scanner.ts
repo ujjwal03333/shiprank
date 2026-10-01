@@ -8,8 +8,11 @@ import {
   buildRemediationPlan,
   generateAgentsMd,
   computeContentHash,
+  licenseFor,
+  criticalCountOf,
+  failingCountOf,
 } from "@shiprank/engine";
-import type { StationScore, CodeProfile, CheckResult } from "@shiprank/engine";
+import type { StationScore, CodeProfile, CheckResult, License } from "@shiprank/engine";
 import type { Fingerprint, RemediationPlan } from "@shiprank/engine";
 import { scoreToGrade as gradeFromScore } from "@shiprank/database";
 
@@ -24,6 +27,10 @@ export interface ScanResult {
   depCount: number;
   score: number;
   grade: string;
+  /** Hold if any scored critical failed. Stubs and N/A do not count. */
+  license: License;
+  criticalCount: number;
+  failingCount: number;
   framework: string;
   fingerprint: Fingerprint;
   stations: StationScore[];
@@ -40,6 +47,9 @@ export async function scanProject(dir: string): Promise<ScanResult> {
   const heldout = runHeldoutChecks(profile);
   const score = overallScore(stations);
   const grade = gradeFromScore(score);
+  const criticalCount = criticalCountOf(stations);
+  const failingCount = failingCountOf(stations);
+  const license = licenseFor(criticalCount);
   const fingerprint = buildFingerprint(profile);
   const remediation = buildRemediationPlan(stations);
 
@@ -64,6 +74,9 @@ export async function scanProject(dir: string): Promise<ScanResult> {
     depCount,
     score,
     grade,
+    license,
+    criticalCount,
+    failingCount,
     framework: profile.framework,
     fingerprint,
     stations,

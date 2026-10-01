@@ -62,6 +62,9 @@ describe("scanProject()", () => {
     expect(result.score).toBeLessThanOrEqual(100);
     expect(["A+", "A", "B", "C", "D", "F"]).toContain(result.grade);
     expect(result.framework).toBe("nextjs");
+    expect(["Hold", "Licensed"]).toContain(result.license);
+    expect(result.criticalCount).toBeGreaterThanOrEqual(0);
+    expect(result.failingCount).toBeGreaterThanOrEqual(result.criticalCount);
     expect(result.stations.length).toBeGreaterThan(0);
     expect(result.fileCount).toBeGreaterThan(0);
     expect(result.depCount).toBeGreaterThan(0);

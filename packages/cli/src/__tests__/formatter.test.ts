@@ -15,6 +15,9 @@ function makeScanResult(score: number, overrides: Partial<ScanResult> = {}): Sca
     depCount: 18,
     score,
     grade: gradeFromScore(score),
+    license: "Hold",
+    criticalCount: 1,
+    failingCount: 2,
     framework: "nextjs",
     fingerprint: {
       platform: { platform: "lovable", confidence: 80, signals: [] },
@@ -168,6 +171,7 @@ describe("renderTerminalOutput()", () => {
     expect(out).toContain("test-app");
     expect(out).toContain("67 / 100");
     expect(out).toContain("Grade C");
+    expect(out).toContain("License     Hold");
   });
 
   it("includes fingerprint line with platform and model", () => {
@@ -218,6 +222,7 @@ describe("renderJsonOutput()", () => {
     expect(parsed).toHaveProperty("stations");
     expect(parsed).toHaveProperty("remediation");
     expect(parsed).toHaveProperty("fingerprint");
+    expect(parsed).toHaveProperty("license", "Hold");
   });
 
   it("JSON score matches input", () => {

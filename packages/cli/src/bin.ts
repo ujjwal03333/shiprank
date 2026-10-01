@@ -2,12 +2,14 @@
 import { parseArgs, type ParsedArgs } from "./args.js";
 import { scanProject, getAgentsMd } from "./scanner.js";
 import { renderTerminalOutput, renderJsonOutput } from "./formatter.js";
-import { uploadResult } from "./uploader.js";
+import { uploadResult, cardUrlFromScanId } from "./uploader.js";
+import { scanExitCode } from "./exit.js";
+import { emitGithubCheck } from "./github-check.js";
 import { compile, createMemoryRateLimiter } from "@shiprank/compile";
 import { hostname } from "node:os";
 
 const HELP = `
-ShipRank — rank your AI-built app against production standards
+ShipRank — the Ship License for AI-built software
 
 Usage:
   npx shiprank [dir]              Scan a project (defaults to current dir)
@@ -15,10 +17,15 @@ Usage:
 
 Options:
   --json                          Output full report as JSON
-  --ci --threshold <n>            Exit 1 if score < n (default 60)
-  --upload                        Upload results to the ShipRank board
+  --ci --threshold <n>            Also exit 1 if score < n (default 60)
+  --upload                        Upload results and print the Card URL
   --rules                         Print an AGENTS.md / .cursorrules file
   -h, --help                      Show this help message
+
+Exit codes:
+  0  Licensed. --help and --rules always exit 0.
+  1  Hold (a scored critical failed), --upload could not reach the API,
+     or --ci score is below --threshold.
 
 Examples:
   npx shiprank ./my-app
@@ -77,21 +84,37 @@ async function runScanCommand(args: ParsedArgs): Promise<number> {
     process.stdout.write(renderTerminalOutput(result) + "\n");
   }
 
+  let uploadFailed = false;
+  let cardUrl: string | undefined;
+  let failureReason: string | undefined;
+
   if (args.upload) {
     try {
-      await uploadResult(result);
-      process.stderr.write("Uploaded to the ShipRank board\n");
+      const uploaded = await uploadResult(result);
+      cardUrl = cardUrlFromScanId(uploaded.scanId);
+      process.stderr.write(`Card: ${cardUrl}\n`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`Upload failed: ${msg}\n`);
+      uploadFailed = true;
+      failureReason = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`${failureReason}\n`);
     }
   }
 
-  if (args.ci && result.score < args.threshold) {
-    return 1;
-  }
+  emitGithubCheck({
+    license: result.license,
+    grade: result.grade,
+    score: result.score,
+    ...(cardUrl !== undefined ? { cardUrl } : {}),
+    ...(failureReason !== undefined ? { failureReason } : {}),
+  });
 
-  return 0;
+  return scanExitCode({
+    license: result.license,
+    uploadFailed,
+    ci: args.ci,
+    score: result.score,
+    threshold: args.threshold,
+  });
 }
 
 async function main(): Promise<number> {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseArgs } from "../args.js";
 import { buildUploadPayload, DEFAULT_API_URL } from "../uploader.js";
 import { gradeFromScore, renderTerminalOutput, renderJsonOutput } from "../formatter.js";
+import { scanExitCode } from "../exit.js";
 import type { ScanResult } from "../scanner.js";
 
 // ── arg parser ────────────────────────────────────────────────────────────────
@@ -70,19 +71,36 @@ describe("parseArgs()", () => {
   });
 });
 
-// ── --ci exit code logic ──────────────────────────────────────────────────────
+describe("scanExitCode()", () => {
+  const base = {
+    uploadFailed: false,
+    ci: false,
+    score: 80,
+    threshold: 60,
+  } as const;
 
-describe("--ci threshold exit logic", () => {
-  it("exits 0 when score meets threshold", () => {
-    const score = 75;
-    const threshold = 60;
-    expect(score >= threshold).toBe(true);
+  it("exits 0 when Licensed", () => {
+    expect(scanExitCode({ ...base, license: "Licensed" })).toBe(0);
   });
 
-  it("exits 1 when score is below threshold", () => {
-    const score = 55;
-    const threshold = 60;
-    expect(score < threshold).toBe(true);
+  it("exits 1 on Hold even without --ci", () => {
+    expect(scanExitCode({ ...base, license: "Hold", score: 95 })).toBe(1);
+  });
+
+  it("exits 1 when --upload could not reach the API", () => {
+    expect(scanExitCode({ ...base, license: "Licensed", uploadFailed: true })).toBe(1);
+  });
+
+  it("exits 1 when --ci score is below --threshold", () => {
+    expect(scanExitCode({ ...base, license: "Licensed", ci: true, score: 55 })).toBe(1);
+  });
+
+  it("exits 0 below the threshold when --ci is off", () => {
+    expect(scanExitCode({ ...base, license: "Licensed", ci: false, score: 55 })).toBe(0);
+  });
+
+  it("exits 0 when --ci score meets the threshold", () => {
+    expect(scanExitCode({ ...base, license: "Licensed", ci: true, score: 75 })).toBe(0);
   });
 });
 
@@ -100,6 +118,9 @@ function makeMinimalResult(score: number): ScanResult {
     depCount: 5,
     score,
     grade: gradeFromScore(score),
+    license: "Licensed",
+    criticalCount: 0,
+    failingCount: 0,
     framework: "nextjs",
     fingerprint: {
       platform: { platform: "cursor", confidence: 70, signals: [] },

@@ -54,6 +54,7 @@ export function renderTerminalOutput(result: ScanResult): string {
   lines.push("");
   lines.push(LINE);
   lines.push(`ShipScore   ${score} / 100   Grade ${grade}`);
+  lines.push(`License     ${result.license}`);
   lines.push(LINE);
 
   for (const station of stations) {

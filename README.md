@@ -4,6 +4,25 @@ The finishing service for AI-built software.
 
 > Give me what your AI built. I'll give it back finished.
 
+## Ship License on GitHub
+
+Paste this as `.github/workflows/ship-license.yml`. Hold exits 1. Licensed is a notice with the grade. A printed Card URL is added to the job summary. Host is the CLI default, `https://shiprank-web-cqm7.vercel.app`.
+
+```yaml
+name: Ship License
+on:
+  pull_request:
+  push:
+jobs:
+  ship-license:
+    name: Ship License
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Ship License
+        run: npx --yes shiprank
+```
+
 ## Structure
 
 - `apps/web` — Next.js 14+ App Router marketing/dashboard site (Tailwind v4, warm-light theme)
