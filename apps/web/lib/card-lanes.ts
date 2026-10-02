@@ -16,11 +16,14 @@ function roundScore(value: unknown): number | null {
   return Math.round(value);
 }
 
-export function formatCardLanes(lanes: CardLanes): string | null {
-  if (lanes.security == null && lanes.healthy == null && lanes.human == null) return null;
-  const part = (label: string, score: number | null) =>
-    score == null ? `${label} —` : `${label} ${score}`;
-  return `${part("Security", lanes.security)} · ${part("Healthy", lanes.healthy)} · ${part("Human", lanes.human)}`;
+/**
+ * A null lane did not run. That is "n/a", never 100 and never a bare dash.
+ * Human with no UI is the phrase "n/a — not a web UI".
+ */
+export function formatCardLanes(lanes: CardLanes): string {
+  const part = (label: string, score: number | null, blank: string) =>
+    score == null ? `${label} ${blank}` : `${label} ${score}`;
+  return `${part("Security", lanes.security, "n/a")} · ${part("Healthy", lanes.healthy, "n/a")} · ${part("Human", lanes.human, "n/a — not a web UI")}`;
 }
 
 export function cardLanesFromStations(
@@ -38,10 +41,15 @@ export function cardLanesFromStations(
   };
 }
 
-/** Lane-only score maps (the current suite). A nine-station map returns null. */
+/**
+ * Lane-only score maps (the current suite). A nine-station map returns null.
+ * An empty map is three unscored lanes, not a missing card.
+ */
 export function cardLanesFromScoreMap(scores: Record<string, number>): CardLanes | null {
   const keys = Object.keys(scores);
-  if (keys.length === 0) return null;
+  if (keys.length === 0) {
+    return { security: null, healthy: null, human: null };
+  }
   if (!keys.every((key) => LANE_STATIONS.has(key))) return null;
   return {
     security: "security" in scores ? roundScore(scores["security"]) : null,
@@ -55,11 +63,10 @@ export function lanesFromMetadata(metadata: unknown): CardLanes | null {
   const lanes = (metadata as { lanes?: unknown }).lanes;
   if (!lanes || typeof lanes !== "object") return null;
   const row = lanes as Record<string, unknown>;
-  const parsed: CardLanes = {
+  if (!("security" in row) && !("healthy" in row) && !("human" in row)) return null;
+  return {
     security: roundScore(row["security"]),
     healthy: roundScore(row["healthy"]),
     human: roundScore(row["human"]),
   };
-  if (parsed.security == null && parsed.healthy == null && parsed.human == null) return null;
-  return parsed;
 }

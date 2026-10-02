@@ -89,6 +89,7 @@ describe("three lanes", () => {
     const stations = runChecks(p);
     expect(capReasonOf(stations)).toBe("not a product yet.");
     expect(overallScore(stations)).toBeLessThanOrEqual(69);
+    expect(stations.find((s) => s.station === "accessibility")!.implemented).toBeGreaterThan(0);
   });
 
   it("caps a dead primary CTA at D", () => {
@@ -151,5 +152,38 @@ describe("three lanes", () => {
     expect(rls.confidence).toBe(0);
     expect(rls.passed).toBe(false);
     expect(sec.implemented).toBe(sec.checks.filter((c) => c.confidence > 0 && c.applicable !== false).length);
+  });
+
+  it("does not pass web checks on a native tree they cannot read", () => {
+    const files = [
+      file("scripts/ue/update/probe_blueprint_mcp.mjs", "export const x = 1\n"),
+      ...Array.from({ length: 40 }, (_, i) => file(`Source/A${i}.cpp`, "")),
+      ...Array.from({ length: 20 }, (_, i) => file(`Source/A${i}.h`, "")),
+      file("page.html", "<h1>Hi</h1>"),
+    ];
+    const p = profile({ framework: "unknown", files });
+    const stations = runChecks(p);
+    for (const station of ["security", "quality", "accessibility"] as const) {
+      const row = stations.find((s) => s.station === station)!;
+      expect(row.implemented).toBe(0);
+      expect(row.checks.every((c) => c.applicable === false || c.confidence === 0)).toBe(true);
+      expect(row.checks.some((c) => c.passed && c.confidence > 0)).toBe(false);
+    }
+    expect(overallScore(stations)).toBe(0);
+    expect(overallScore(stations)).toBeLessThan(70);
+    expect(capReasonOf(stations)).toBe("not a product yet.");
+  });
+
+  it("still fails a secret it can see in an otherwise unreadable tree", () => {
+    const files = [
+      file("scripts/probe.mjs", 'const k = "sk-abcdefghijklmnopqrstuvwxyz0123456789"'),
+      ...Array.from({ length: 30 }, (_, i) => file(`Source/A${i}.cpp`, "")),
+    ];
+    const sec = runChecks(profile({ files })).find((s) => s.station === "security")!;
+    const secrets = sec.checks.find((c) => c.id === "SEC-001")!;
+    expect(secrets.passed).toBe(false);
+    expect(secrets.confidence).toBeGreaterThan(0);
+    expect(secrets.applicable).not.toBe(false);
+    expect(overallScore(runChecks(profile({ files })))).toBeLessThan(70);
   });
 });

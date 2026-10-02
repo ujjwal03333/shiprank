@@ -17,6 +17,12 @@ export const LANE_WEIGHTS = {
 
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue", ".svelte", ".html"]);
 const UI_EXTS = new Set([".tsx", ".jsx", ".vue", ".svelte", ".html"]);
+/** Languages these checks do not parse. A tree that is mostly one of these is not a web pass. */
+const FOREIGN_EXTS = new Set([
+  ".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx",
+  ".cs", ".py", ".rs", ".go", ".java", ".kt", ".kts",
+  ".swift", ".m", ".mm", ".rb", ".php", ".scala", ".lua",
+]);
 
 const SECURITY_P0 = new Set([
   "SEC-001",
@@ -81,6 +87,30 @@ function uiFiles(profile: CodeProfile): FileInfo[] {
 
 function isWeb(profile: CodeProfile): boolean {
   return profile.framework !== "unknown" || uiFiles(profile).length > 0;
+}
+
+function readableSourceCount(profile: CodeProfile): number {
+  return profile.files.filter(
+    (f) => SOURCE_EXTS.has(f.ext.toLowerCase()) && Boolean(f.content) && !isTestPath(f.path),
+  ).length;
+}
+
+function foreignCodeCount(profile: CodeProfile): number {
+  return profile.files.filter((f) => FOREIGN_EXTS.has(f.ext.toLowerCase())).length;
+}
+
+/**
+ * False when the tree is mostly a language these checks do not parse.
+ * Absence of a web failure is not a pass in that case. An empty tree is
+ * not foreign — each check already excludes itself when it has nothing to read.
+ */
+function treeIsReadable(profile: CodeProfile): boolean {
+  return foreignCodeCount(profile) <= readableSourceCount(profile);
+}
+
+/** Web checks run only on a web tree we can actually read. */
+function webSurface(profile: CodeProfile): boolean {
+  return isWeb(profile) && treeIsReadable(profile);
 }
 
 export function hasProductSurface(profile: CodeProfile): boolean {
@@ -173,6 +203,7 @@ const checkSEC001: CheckFn = (profile) => {
       return bad(b, "High-entropy secret in source.", `${file.path}`, file, m.index);
     }
   }
+  if (!treeIsReadable(profile)) return unseen(b);
   return ok(b);
 };
 
@@ -201,6 +232,8 @@ const checkSEC031: CheckFn = (profile) => {
       return bad(b, "Service-role JWT is in a public env.", file.path, file, m.index);
     }
   }
+  // No NEXT_PUBLIC key is not a pass on a native tree, or on a tree with no client bundle.
+  if (!treeIsReadable(profile) || !isWeb(profile)) return unseen(b);
   return ok(b);
 };
 
@@ -280,7 +313,10 @@ const checkSEC004: CheckFn = (profile) => {
     /useSession|supabase\.auth\.getSession|if\s*\(\s*!user\s*\)/.test(f.content) &&
     (f.content.includes("use client") || f.ext === ".tsx"),
   );
-  if (serverGate) return ok(b);
+  if (serverGate) {
+    if (!treeIsReadable(profile)) return unseen(b);
+    return ok(b);
+  }
   if (clientOnly || profile.apiRoutes.length > 0) {
     const file = files.find((f) => /useSession|getSession|if\s*\(\s*!user\s*\)/.test(f.content));
     return bad(b, "Auth is only enforced in the UI.", file?.path ?? "no server session check", file);
@@ -304,6 +340,7 @@ const checkSEC012: CheckFn = (profile) => {
   const routes = sourceFiles(profile).filter((f) => /webhook/i.test(f.path));
   if (!profile.hasPayments && routes.length === 0) return unseen(b);
   if (routes.length === 0) {
+    if (!treeIsReadable(profile)) return unseen(b);
     return {
       ...ok(b),
       title: "No webhook routes found to verify",
@@ -336,7 +373,7 @@ const checkSEC033: CheckFn = (profile) => {
     autoFixSafety: "safe",
     scoreWeight: severe ? 10 : 6,
   });
-  if (!isWeb(profile)) return unseen(b);
+  if (!webSurface(profile)) return unseen(b);
   const blob = [
     ...Object.values(profile.configFiles),
     ...sourceFiles(profile).map((f) => f.content),
@@ -363,6 +400,7 @@ const checkSEC019: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 12,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   for (const file of files) {
@@ -443,6 +481,7 @@ const checkHEAL002: CheckFn = (profile) => {
   if (files.length === 0) return unseen(b);
   const hit = findIn(files, /catch\s*(?:\([^)]*\))?\s*\{\s*(?:\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\s*)?\}/);
   if (hit) return bad(b, "Empty catch swallows the error.", hit.file.path, hit.file, hit.index);
+  if (!treeIsReadable(profile)) return unseen(b);
   return ok(b);
 };
 
@@ -459,6 +498,7 @@ const checkHEAL003: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 8,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const blob = files.map((f) => `${f.path}\n${f.content}`).join("\n");
@@ -486,7 +526,7 @@ const checkHEAL004: CheckFn = (profile) => {
   const files = sourceFiles(profile);
   const hit = findIn(files, /[sp]k_live_[A-Za-z0-9]{8,}/);
   if (hit) return bad(b, "Live payment key is in source.", hit.text.slice(0, 12), hit.file, hit.index);
-  if (!profile.hasPayments) return unseen(b);
+  if (!profile.hasPayments || !treeIsReadable(profile)) return unseen(b);
   return ok(b);
 };
 
@@ -507,6 +547,7 @@ const checkHEAL005: CheckFn = (profile) => {
   if (files.length === 0) return unseen(b);
   const hit = findIn(files, /console\.(log|info|debug|warn|error)\([^)\n]{0,200}(email|token|password|\buser\b)/i);
   if (hit) return bad(b, "A log line includes a user, email, or token.", hit.file.path, hit.file, hit.index);
+  if (!treeIsReadable(profile)) return unseen(b);
   return ok(b);
 };
 
@@ -526,7 +567,7 @@ const checkHEAL006: CheckFn = (profile) => {
     autoFixSafety: "safe",
     scoreWeight: 4,
   });
-  if (!isWeb(profile)) return unseen(b);
+  if (!webSurface(profile)) return unseen(b);
   const found = profile.files.some((f) =>
     /(^|\/)(not-found|404)\.(tsx|jsx|ts|js|html)$/.test(f.path),
   );
@@ -547,7 +588,7 @@ const checkHEAL007: CheckFn = (profile) => {
     autoFixSafety: "safe",
     scoreWeight: 3,
   });
-  if (!isWeb(profile)) return unseen(b);
+  if (!webSurface(profile)) return unseen(b);
   const found = profile.files.some((f) =>
     /(^|\/)robots\.(txt|ts|js)$/.test(f.path),
   );
@@ -589,6 +630,7 @@ const checkHUM001: CheckFn = (profile) => {
     autoFixSafety: "safe",
     scoreWeight: 6,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const hit = findIn(files, /<div\b[^>]*\bonClick\b/);
@@ -609,6 +651,7 @@ const checkHUM002: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 5,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const hit = findIn(files, /href\s*=\s*\{?["']#["']\}?/);
@@ -629,6 +672,7 @@ const checkHUM003: CheckFn = (profile) => {
     autoFixSafety: "human-only",
     scoreWeight: 6,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const hit = findIn(
@@ -652,6 +696,7 @@ const checkHUM004: CheckFn = (profile) => {
     autoFixSafety: "human-only",
     scoreWeight: 10,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const re = /<(button|a)\b[^>]*(?:bg-brand|btn-primary|button-primary|\bcta\b)[^>]*>/gi;
@@ -687,6 +732,7 @@ const checkHUM005: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 4,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   for (const file of files) {
@@ -716,6 +762,7 @@ const checkHUM006: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 4,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const hit = findIn(files, />([^<]{0,80}(?:lorem ipsum|john doe|jane doe)[^<]{0,80})</i);
@@ -738,6 +785,7 @@ const checkHUM007: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 3,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const generic = files.filter((f) => /Something went wrong/i.test(f.content));
@@ -760,6 +808,7 @@ const checkHUM008: CheckFn = (profile) => {
     autoFixSafety: "review",
     scoreWeight: 4,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   for (const file of files) {
@@ -788,6 +837,7 @@ const checkHUM009: CheckFn = (profile) => {
     autoFixSafety: "human-only",
     scoreWeight: 5,
   });
+  if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
   const button = findIn(files, /<button\b(?![^>]*\bonClick\b)(?![^>]*type=["']submit["'])[^>]*>/);

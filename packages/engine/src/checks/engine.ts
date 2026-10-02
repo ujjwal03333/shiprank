@@ -60,7 +60,7 @@ function scoreStation(checks: CheckResult[], profile: CodeProfile): number {
     if (check.passed) earnedWeight += weight;
   }
 
-  return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 100;
+  return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
 }
 
 export function runChecks(profile: CodeProfile): StationScore[] {
