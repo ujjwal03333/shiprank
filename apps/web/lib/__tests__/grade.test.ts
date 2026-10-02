@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { verdictFor } from "@shiprank/engine";
 import {
   gradeStroke,
   gradeBadgeClass,
   gradeLetterClass,
   cardLine,
-  verdictFor,
   STATION_LABEL,
   STATION_DESCRIPTION,
   STATION_COLOR,

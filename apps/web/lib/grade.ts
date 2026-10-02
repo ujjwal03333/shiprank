@@ -30,9 +30,6 @@ export function cardLine(score: number): string {
   return "Do not ship.";
 }
 
-export { verdictFor, licenseFor } from "@shiprank/engine";
-export type { Verdict, License } from "@shiprank/engine";
-
 export const STATION_LABEL: Record<string, string> = {
   security: "Security",
   accessibility: "Accessibility",
