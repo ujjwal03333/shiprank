@@ -381,30 +381,25 @@ describe("runChecks — engine integration", () => {
     }
   });
 
-  it("all 30 SEC check IDs are present in security station", () => {
+  it("scores the security lane, not the old 30-check catalog", () => {
     const scores = runChecks(makeProfile());
     const sec = scores.find(s => s.station === "security")!;
-    expect(sec.checks).toHaveLength(30);
-    for (let i = 1; i <= 30; i++) {
-      const id = `SEC-${String(i).padStart(3, "0")}`;
-      expect(sec.checks.map(c => c.id)).toContain(id);
-    }
-  });
-
-  it("stubs are excluded from scoring (confidence: 0)", () => {
-    const scores = runChecks(makeProfile());
-    const sec = scores.find(s => s.station === "security")!;
-    const stubs = sec.checks.filter(c => c.confidence === 0);
-    // 18 wave-2 stubs + SEC-011 (returns confidence:0 when gitCommits is null)
-    expect(stubs.length).toBe(19);
-    expect(stubs.every(c => c.passed)).toBe(true);
+    const ids = sec.checks.map(c => c.id);
+    expect(ids).toContain("SEC-001");
+    expect(ids).toContain("SEC-033");
+    expect(ids).not.toContain("SEC-013");
+    const unseen = sec.checks.filter(c => c.confidence === 0);
+    expect(unseen.every(c => c.passed)).toBe(false);
   });
 
   it("security score is lower with a service role key in source", () => {
-    const cleanProfile = makeProfile({ files: [file(".gitignore", ".env*\n")] });
+    const cleanProfile = makeProfile({
+      files: [file(".gitignore", ".env*\n"), file("lib/ok.ts", "export const x = 1;")],
+    });
     const dirtyProfile = makeProfile({
       files: [
         file(".gitignore", ".env*\n"),
+        file("lib/ok.ts", "export const x = 1;"),
         file("lib/admin.ts", "const SUPABASE_SERVICE_ROLE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.somesig'"),
       ],
     });

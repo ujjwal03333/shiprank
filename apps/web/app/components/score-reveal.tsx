@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { cardLine, gradeLetterClass } from "@/lib/grade";
 import { visiblePlatform } from "@/lib/format-names";
+import { formatCardLanes, type CardLanes } from "@/lib/card-lanes";
 
 export interface ScoreRevealProps {
   score: number;
@@ -11,6 +12,7 @@ export interface ScoreRevealProps {
   platform?: string | null | undefined;
   meta?: string | undefined;
   animate?: boolean;
+  lanes?: CardLanes | null;
   children?: React.ReactNode;
 }
 
@@ -25,6 +27,7 @@ export function ScoreReveal({
   platform,
   meta,
   animate = true,
+  lanes = null,
   children,
 }: ScoreRevealProps) {
   const [shown, setShown] = useState(score);
@@ -58,6 +61,7 @@ export function ScoreReveal({
   const letterClass = gradeLetterClass(grade);
   const verdict = cardLine(score);
   const chip = [visiblePlatform(platform), meta].filter(Boolean).join("  ·  ");
+  const laneLine = lanes ? formatCardLanes(lanes) : null;
 
   return (
     <div className="night-court flex w-full min-w-0 flex-col items-center">
@@ -82,6 +86,11 @@ export function ScoreReveal({
               {projectName}
             </span>
           </p>
+          {laneLine ? (
+            <p className="max-w-full break-words font-mono text-[11px] text-ink-subtle">
+              {laneLine}
+            </p>
+          ) : null}
           {chip ? (
             <p className="max-w-full break-words font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
               {chip}

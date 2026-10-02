@@ -65,7 +65,7 @@ export async function scanProject(dir: string): Promise<ScanResult> {
 
   return {
     version: "1.0.0",
-    checkSuiteVersion: "1.0.0",
+    checkSuiteVersion: "1.1.0",
     projectName,
     root,
     contentHash,

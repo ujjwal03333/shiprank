@@ -26,6 +26,7 @@ import { formatPlatformName, formatModelName, timeAgo } from "@/lib/format-names
 import { fetchCheckPrevalence, type CheckPrevalence } from "@/lib/check-prevalence";
 import { decisionContextFor } from "@/lib/decision-context";
 import { chipsFromFindings } from "@/lib/asked-vs-shipped";
+import { lanesFromMetadata } from "@/lib/card-lanes";
 
 const APP_URL = publicAppUrl();
 
@@ -537,6 +538,7 @@ export default async function ScanPage({
           staticStamp
           previousScore={typedScan.metadata?.previousScore ?? null}
           chips={chips}
+          lanes={lanesFromMetadata(typedScan.metadata)}
         />
       </div>
 

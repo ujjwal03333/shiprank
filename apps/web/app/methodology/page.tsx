@@ -25,131 +25,57 @@ const STATIONS = [
   {
     id: "security",
     name: "Security",
-    color: "#b23b3b",
+    weight: 45,
+    color: "var(--color-danger)",
     description:
-      "Checks for hardcoded secrets, RLS configuration, authentication patterns, exposed API routes, and dependency vulnerabilities. The highest-weight station — a single critical finding can anchor the score.",
+      "What an attacker can use. A failing security P0 caps the grade at D. Row-level security is proposed as SQL and never applied.",
     checks: [
-      "SEC-001 · No hardcoded secrets or API keys in source",
-      "SEC-002 · .env files excluded from git (.gitignore)",
+      "SEC-001 · No secrets in source",
+      "SEC-031 · No privileged key in NEXT_PUBLIC or VITE",
       "SEC-003 · RLS enabled on database tables",
-      "SEC-004 · Server-side session validation on protected routes",
-      "SEC-005 · Input validated before database writes",
-      "SEC-006 · No eval() or dynamic require() in application code",
+      "SEC-032 · RLS policies are not USING (true)",
+      "SEC-004 · Auth is enforced on the server",
+      "SEC-012 · Webhooks verify signatures",
+      "SEC-033 · CSP, HSTS, X-Frame-Options DENY, nosniff",
+      "SEC-019 · dangerouslySetInnerHTML is not user content",
+      "SEC-034 · Authed routes do not allow open CORS",
     ],
   },
   {
-    id: "accessibility",
-    name: "Accessibility",
-    color: "#6a4c93",
+    id: "healthy",
+    name: "Healthy",
+    weight: 30,
+    color: "var(--color-info)",
     description:
-      "Evaluates WCAG 2.1 compliance signals in source: alt attributes, ARIA labels, skip-to-content links, heading hierarchy, color contrast annotations, and keyboard focus management.",
+      "Whether the product can be occupied. A repo with no auth and no data is not a B — the grade caps at C, reason “not a product yet.”",
     checks: [
-      "A11Y-001 · Image alt attributes present",
-      "A11Y-002 · ARIA labels on interactive elements",
-      "A11Y-003 · Heading hierarchy (h1→h2→h3)",
-      "A11Y-004 · Keyboard focus indicators",
-      "A11Y-005 · Skip-to-content link present",
+      "COMP-004 · Users can delete their data",
+      "HEAL-002 · No empty catch",
+      "HEAL-003 · Loading, empty, and error UI",
+      "HEAL-004 · No live payment keys in source",
+      "HEAL-005 · Logs do not contain emails, tokens, or user objects",
+      "HEAL-006 · A 404 page exists",
+      "HEAL-007 · robots.txt exists",
+      "HEAL-008 · Login and signup are rate limited",
     ],
   },
   {
-    id: "performance",
-    name: "Performance",
-    color: "#c08a1e",
+    id: "human",
+    name: "Human",
+    weight: 25,
+    color: "var(--color-brand)",
     description:
-      "Scores bundle hygiene, image optimization, caching strategies, and Core Web Vitals indicators detectable in source. Rewards projects with lazy loading, font optimization, and proper caching headers.",
+      "Whether the interface is slop. If it looks clickable and does nothing, it is charged. A dead primary CTA caps the grade at D.",
     checks: [
-      "PERF-001 · Image optimization (next/image or equivalent)",
-      "PERF-002 · Dynamic imports for heavy components",
-      "PERF-003 · Cache headers on static assets",
-      "PERF-004 · No blocking scripts in <head>",
-      "PERF-005 · Font subsetting / display: swap",
-    ],
-  },
-  {
-    id: "growth",
-    name: "Growth",
-    color: "#3f7d52",
-    description:
-      "Measures SEO fundamentals (meta tags, robots.txt, sitemap), social sharing cards (OG/Twitter), analytics integration, and viral-loop infrastructure. Most vibe-coded apps score lowest here.",
-    checks: [
-      "SEO-001 · <title> and <meta description> on all pages",
-      "SEO-002 · Open Graph tags (og:title, og:image)",
-      "SEO-003 · robots.txt present",
-      "SEO-004 · sitemap.xml or sitemap generation",
-      "SEO-005 · Twitter/X card meta tags",
-      "SEO-006 · Canonical URL set",
-    ],
-  },
-  {
-    id: "code_quality",
-    name: "Code Quality",
-    color: "#3d6e8c",
-    description:
-      "Analyzes TypeScript coverage, test presence, unused exports, console usage, and error-handling patterns. A proxy for long-term maintainability.",
-    checks: [
-      "QUAL-001 · Test coverage present",
-      "QUAL-002 · TypeScript strict mode enabled",
-      "QUAL-003 · No excessive any type usage",
-      "QUAL-005 · No console.log in production code",
-      "QUAL-008 · No silent error swallowing",
-      "QUAL-009 · Consistent async error handling",
-    ],
-  },
-  {
-    id: "architecture",
-    name: "Architecture",
-    color: "#4a5568",
-    description:
-      "Looks for client components that talk to the database, god files, a service layer around Stripe/Supabase, env-file separation, and a shared UI kit. Remaining ARCH IDs are stubs (confidence 0) and do not score.",
-    checks: [
-      "ARCH-001 · Business logic not in client components",
-      "ARCH-002 · No god components (>500 lines)",
-      "ARCH-004 · Service layer present",
-      "ARCH-006 · Environment separation",
-      "ARCH-008 · Shared UI component library",
-    ],
-  },
-  {
-    id: "data",
-    name: "Data Integrity",
-    color: "#2c6e49",
-    description:
-      "Static reads of committed SQL / Prisma schema and query loops. Foreign-key indexes and NOT NULL remain stubs until we can parse them honestly.",
-    checks: [
-      "DATA-003 · No float for monetary values",
-      "DATA-004 · Migrations committed to repo",
-      "DATA-006 · No N+1 query patterns",
-      "DATA-007 · created_at / updated_at timestamps",
-      "DATA-008 · Unique constraints on unique fields",
-    ],
-  },
-  {
-    id: "compliance",
-    name: "Compliance",
-    color: "#7a4e2d",
-    description:
-      "Detects privacy and terms routes, cookie consent when tracking exists, account-deletion handlers, and PII in log statements. Not legal advice — a static scan.",
-    checks: [
-      "COMP-001 · Privacy policy present",
-      "COMP-002 · Terms of service present",
-      "COMP-003 · Cookie consent when tracking exists",
-      "COMP-004 · Account deletion endpoint",
-      "COMP-005 · No PII logged",
-    ],
-  },
-  {
-    id: "infra",
-    name: "Infrastructure",
-    color: "#5c6b73",
-    description:
-      "CI workflows, error tracking, analytics, a health route, hardcoded localhost URLs, and automated dependency updates. Preview-deploy and env-matrix checks are still stubs.",
-    checks: [
-      "INFRA-001 · CI pipeline configured",
-      "INFRA-002 · Error tracking configured",
-      "INFRA-003 · Analytics configured",
-      "INFRA-004 · Health check endpoint present",
-      "INFRA-005 · No hardcoded localhost URLs",
-      "INFRA-008 · Dependency updates automated",
+      "HUM-001 · div with onClick is a button",
+      "HUM-002 · No href=\"#\"",
+      "HUM-003 · No TODO or empty handlers",
+      "HUM-004 · Primary CTA does something",
+      "HUM-005 · Heading order is sane",
+      "HUM-006 · No lorem, TODO, or John Doe in the UI",
+      "HUM-007 · Errors say what failed",
+      "HUM-008 · outline-none does not hide focus",
+      "HUM-009 · Clickable controls do something",
     ],
   },
 ];
@@ -236,6 +162,7 @@ export default async function MethodologyPage() {
                 />
                 <h3 className="font-display text-lg text-ink">
                   {station.name}
+                  <span className="ml-2 font-mono text-xs text-ink-subtle">{station.weight}</span>
                 </h3>
               </div>
               <p className="font-body text-sm text-ink-muted leading-relaxed">
@@ -299,7 +226,7 @@ export default async function MethodologyPage() {
         </summary>
         <div className="border-t border-border px-5 py-6">
           <p className="font-body text-sm text-ink-muted leading-relaxed">
-            Close issues one contract: the highest-severity failing check that has a file path. Checks that cannot fire on the tree are N/A and do not score. A tree with fewer than 12 applicable checks cannot license above C. “Why the AI did this” only renders when the profiler saw an agent.
+            The grade is the weighted mean of Security (45), Healthy (30), and Human (25). A check we cannot detect is excluded, never counted as a pass. Fewer than 12 applicable checks cannot score above C. The docket is at most seven charges, worst of each lane first. Close issues one contract: the first charge that has a file path. “Why the AI did this” only renders when the profiler saw an agent.
           </p>
         </div>
       </details>

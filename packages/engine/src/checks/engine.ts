@@ -1,13 +1,5 @@
 import type { CodeProfile, CheckResult, StationScore, Station } from "./types";
-import { securityChecks } from "./security";
-import { accessibilityChecks } from "./accessibility";
-import { performanceChecks } from "./performance";
-import { growthChecks } from "./growth";
-import { qualityChecks } from "./quality";
-import { architectureChecks } from "./architecture";
-import { dataChecks } from "./data";
-import { complianceChecks } from "./compliance";
-import { infrastructureChecks } from "./infrastructure";
+import { laneChecks, annotateLaneCaps, LANE_WEIGHTS } from "./lanes";
 import { heldoutChecks } from "./heldout";
 import { decisionContextFor } from "../decision-context";
 import { attachEvidenceLoc } from "../evidence";
@@ -26,27 +18,17 @@ function isActive(check: CheckResult): boolean {
 
 const STATION_NAMES: Record<Station, string> = {
   security: "Security",
-  accessibility: "Accessibility",
+  accessibility: "Human",
   performance: "Performance",
   growth: "Growth",
-  quality: "Code Quality",
+  quality: "Healthy",
   architecture: "Architecture",
   data: "Data Integrity",
   compliance: "Compliance",
   infrastructure: "Infrastructure",
 };
 
-const ALL_CHECKS = [
-  ...securityChecks,
-  ...accessibilityChecks,
-  ...performanceChecks,
-  ...growthChecks,
-  ...qualityChecks,
-  ...architectureChecks,
-  ...dataChecks,
-  ...complianceChecks,
-  ...infrastructureChecks,
-];
+const ALL_CHECKS = [...laneChecks];
 
 function severityMultiplier(profile: CodeProfile, check: CheckResult): number {
   if (check.severity !== "critical" && check.severity !== "warning") return 1;
@@ -105,18 +87,19 @@ export function runChecks(profile: CodeProfile): StationScore[] {
     "quality", "architecture", "data", "compliance", "infrastructure",
   ];
 
-  return stations.map(station => {
+  const scored = stations.map(station => {
     const checks = byStation.get(station) ?? [];
     const implemented = checks.filter(isActive).length;
     return {
       station,
       name: STATION_NAMES[station],
-      score: scoreStation(checks, profile),
+      score: implemented === 0 ? 0 : scoreStation(checks, profile),
       checks,
       implemented,
       total: checks.length,
     };
   });
+  return annotateLaneCaps(profile, scored);
 }
 
 /**
@@ -136,12 +119,25 @@ export function applicableCheckCount(stationScores: StationScore[]): number {
 }
 
 export function overallScore(stationScores: StationScore[]): number {
-  const scored = stationScores.filter((s) => s.implemented > 0);
-  if (scored.length === 0) return 0;
-  const sum = scored.reduce((s, ss) => s + ss.score, 0);
-  const raw = Math.round(sum / scored.length);
-  if (applicableCheckCount(stationScores) < LICENSE_FLOOR_CHECKS) {
-    return Math.min(raw, VACUOUS_SCORE_CAP);
+  const lanes = stationScores.filter(
+    (s) => s.station in LANE_WEIGHTS && s.implemented > 0,
+  );
+  if (lanes.length === 0) return 0;
+  let weight = 0;
+  let acc = 0;
+  for (const s of lanes) {
+    const w = LANE_WEIGHTS[s.station as keyof typeof LANE_WEIGHTS];
+    weight += w;
+    acc += s.score * w;
   }
-  return raw;
+  let raw = weight > 0 ? Math.round(acc / weight) : 0;
+  if (applicableCheckCount(stationScores) < LICENSE_FLOOR_CHECKS) {
+    raw = Math.min(raw, VACUOUS_SCORE_CAP);
+  }
+  let cap = 100;
+  for (const s of stationScores) {
+    if (s.capGrade === "D") cap = Math.min(cap, 54);
+    else if (s.capGrade === "C") cap = Math.min(cap, 69);
+  }
+  return Math.min(raw, cap);
 }

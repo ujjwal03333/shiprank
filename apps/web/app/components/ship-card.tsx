@@ -3,6 +3,7 @@ import { cardLine, gradeLetterClass } from "@/lib/grade";
 import { cardPath } from "@/lib/public-url";
 import { visiblePlatform } from "@/lib/format-names";
 import { AskedChips, type AskedChip } from "./asked-chips";
+import { formatCardLanes, type CardLanes } from "@/lib/card-lanes";
 
 export interface ShipCardProps {
   score: number;
@@ -19,6 +20,8 @@ export interface ShipCardProps {
   previousScore?: number | null;
   /** Asked vs shipped. Information only — never buttons. */
   chips?: readonly AskedChip[];
+  /** Security, Healthy, Human. Omitted on scans from before the three lanes. */
+  lanes?: CardLanes | null;
 }
 
 /**
@@ -37,6 +40,7 @@ export function ShipCard({
   staticStamp = false,
   previousScore = null,
   chips = [],
+  lanes = null,
 }: ShipCardProps) {
   const letterClass = gradeLetterClass(grade);
   const verdict = line ?? cardLine(score);
@@ -45,6 +49,7 @@ export function ShipCard({
       ? "text-[7.5rem] leading-none sm:text-[10rem]"
       : "text-6xl leading-none sm:text-7xl";
   const chip = [visiblePlatform(platform), meta].filter(Boolean).join("  ·  ");
+  const laneLine = lanes ? formatCardLanes(lanes) : null;
 
   const inner = (
     <div
@@ -70,6 +75,11 @@ export function ShipCard({
             {projectName}
           </span>
         </p>
+        {laneLine ? (
+          <p className="max-w-full break-words font-mono text-[11px] text-ink-subtle">
+            {laneLine}
+          </p>
+        ) : null}
         {chip ? (
           <p className="max-w-full break-words font-mono text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
             {chip}

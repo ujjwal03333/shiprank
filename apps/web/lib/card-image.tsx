@@ -7,6 +7,7 @@ import {
   gradeHex,
   type CardExportSize,
 } from "./night-court";
+import { formatCardLanes, type CardLanes } from "./card-lanes";
 
 export interface CardImageInput {
   score: number;
@@ -15,6 +16,7 @@ export interface CardImageInput {
   platform?: string | null;
   verdict?: string;
   size?: CardExportSize;
+  lanes?: CardLanes | null;
 }
 
 export function cardImageResponse(input: CardImageInput): ImageResponse {
@@ -32,6 +34,7 @@ export function renderCardMarkup(
   const color = gradeHex(input.grade);
   const verdict = input.verdict ?? cardLine(input.score);
   const platform = visiblePlatform(input.platform);
+  const laneLine = input.lanes ? formatCardLanes(input.lanes) : null;
   const isStory = size.height > size.width;
   const letterPx = isStory ? 280 : Math.round(size.height * 0.42);
   const namePx = isStory ? 28 : 22;
@@ -89,6 +92,18 @@ export function renderCardMarkup(
             {`  ·  ${input.projectName}`}
           </span>
         </div>
+        {laneLine ? (
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: 16,
+              color: NIGHT.subtle,
+            }}
+          >
+            {laneLine}
+          </div>
+        ) : null}
         {platform ? (
           <div
             style={{

@@ -12,6 +12,7 @@ import {
 } from "@shiprank/engine";
 import { scoreToGrade } from "@shiprank/database";
 import { ingestUpload } from "./scan-ingester";
+import { cardLanesFromStations, type CardLanes } from "./card-lanes";
 import { claimDareJob, updateDareJob } from "./dare-store";
 import { getServiceClient, isSupabaseConfigured } from "./supabase";
 import {
@@ -34,6 +35,7 @@ export interface DareProgress {
   platform?: string;
   parentScanId?: string;
   previousScore?: number;
+  lanes?: CardLanes;
 }
 
 async function countFiles(dir: string, depth = 0): Promise<number> {
@@ -173,6 +175,7 @@ export async function processDareJob(jobId: string): Promise<void> {
         score,
         grade,
         platform: fingerprint.platform.platform,
+        lanes: cardLanesFromStations(stations),
       },
     });
 
@@ -228,6 +231,7 @@ export async function processDareJob(jobId: string): Promise<void> {
       score,
       grade,
       platform: fingerprint.platform.platform,
+      lanes: cardLanesFromStations(stations),
     };
 
     let scanId: string | null = null;
@@ -242,7 +246,7 @@ export async function processDareJob(jobId: string): Promise<void> {
             {
               projectName,
               contentHash,
-              checkVersion: "1.0.0",
+              checkVersion: "1.1.0",
               score,
               grade,
               framework: profile.framework,

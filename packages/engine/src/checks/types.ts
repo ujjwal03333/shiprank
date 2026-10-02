@@ -102,6 +102,9 @@ export interface StationScore {
   checks: CheckResult[];
   implemented: number; // 0 ⇒ station is excluded from overallScore
   total: number;
+  /** Grade ceiling applied because of a lane rule. D → 54, C → 69. */
+  capGrade?: "C" | "D";
+  capReason?: string;
 }
 
 export type CheckFn = (profile: CodeProfile) => CheckResult;

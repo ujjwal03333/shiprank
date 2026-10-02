@@ -91,7 +91,7 @@ export default async function ModelsPage() {
         <div className="rounded-2xl border border-dashed border-border-strong p-16 text-center">
           <p className="font-display text-2xl text-ink">No model data yet</p>
           <p className="mt-2 font-body text-sm text-ink-muted">
-            The leaderboard is empty. Be the first to dare a repo →
+            The board is empty. Dare a public repo.
           </p>
           <Link
             href="/dare"

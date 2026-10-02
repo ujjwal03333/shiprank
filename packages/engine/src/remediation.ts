@@ -1,5 +1,6 @@
 import type { StationScore, Severity, AutoFixSafety, FixDifficulty } from "./checks/types";
 import { overallScore } from "./checks/engine";
+import { docketOf, LANE_WEIGHTS } from "./checks/lanes";
 
 export type AutoFixClass = "SAFE-AUTO" | "REVIEW" | "HUMAN-ONLY";
 
@@ -44,32 +45,38 @@ function toAutoFixClass(safety: AutoFixSafety): AutoFixClass {
   return "REVIEW";
 }
 
+function laneWeightOf(station: string): number {
+  if (station === "security" || station === "quality" || station === "accessibility") {
+    return LANE_WEIGHTS[station];
+  }
+  return 0;
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 export function buildRemediationPlan(stationScores: StationScore[]): RemediationPlan {
   const current = overallScore(stationScores);
-  const stationCount = stationScores.length;
+  const laneWeightTotal = stationScores.reduce((sum, s) => {
+    if (s.implemented === 0) return sum;
+    return sum + laneWeightOf(s.station);
+  }, 0);
 
-  const items: RemediationItem[] = [];
+  const byId = new Map<string, RemediationItem>();
 
   for (const station of stationScores) {
-    // Only implemented checks (confidence > 0) matter for scoring.
-    const active = station.checks.filter(c => c.confidence > 0);
+    const laneWeight = laneWeightOf(station.station);
+    if (laneWeight === 0) continue;
+    const active = station.checks.filter((c) => c.confidence > 0 && c.applicable !== false);
     const totalWeight = active.reduce((s, c) => s + c.scoreWeight, 0);
     if (totalWeight === 0) continue;
 
     for (const check of active) {
       if (check.passed) continue;
-
-      // How many station-score points this check is worth.
       const stationGain = (check.scoreWeight / totalWeight) * 100;
-      // Station scores are averaged equally across all stations for overall.
-      const overallGain = stationGain / stationCount;
-
+      const overallGain = laneWeightTotal > 0 ? stationGain * (laneWeight / laneWeightTotal) : 0;
       const effortMinutes = parseMinutes(check.fixTime);
       const roi = effortMinutes > 0 ? overallGain / effortMinutes : 0;
-
-      items.push({
+      byId.set(check.id, {
         checkId: check.id,
         station: station.station,
         title: check.title,
@@ -85,12 +92,13 @@ export function buildRemediationPlan(stationScores: StationScore[]): Remediation
     }
   }
 
-  // Best ROI first.
-  items.sort((a, b) => b.roi - a.roi);
+  const docket = docketOf(stationScores, 7)
+    .map((c) => byId.get(c.id))
+    .filter((item): item is RemediationItem => item != null);
 
-  const top3 = items.slice(0, 3);
+  const top3 = docket.slice(0, 3);
   const gainSum = top3.reduce((s, i) => s + i.scoreGain, 0);
   const projectedScore = Math.min(100, Math.round((current + gainSum) * 10) / 10);
 
-  return { currentScore: current, projectedScore, top3, all: items };
+  return { currentScore: current, projectedScore, top3, all: docket };
 }

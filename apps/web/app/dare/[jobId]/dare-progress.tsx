@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ScoreReveal } from "../../components/score-reveal";
 import { ShareActions } from "../../components/share-actions";
 import { formatPlatformName } from "@/lib/format-names";
+import type { CardLanes } from "@/lib/card-lanes";
 
 interface JobPayload {
   id: string;
@@ -19,6 +20,7 @@ interface JobPayload {
     score?: number;
     grade?: string;
     platform?: string;
+    lanes?: CardLanes;
   } | null;
   scan_id: string | null;
   error_message: string | null;
@@ -153,6 +155,7 @@ export function DareProgress({ jobId }: { jobId: string }) {
           platform={platform}
           meta={meta}
           animate
+          lanes={job.progress?.lanes ?? null}
         >
           {job.scan_id ? (
             <ShareActions

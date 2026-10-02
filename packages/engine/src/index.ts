@@ -26,6 +26,15 @@ export {
   isActiveCheck,
 } from "./checks/engine";
 export {
+  laneChecks,
+  docketOf,
+  capReasonOf,
+  laneNumbers,
+  hasProductSurface,
+  LANE_WEIGHTS,
+} from "./checks/lanes";
+export type { LaneNumbers } from "./checks/lanes";
+export {
   licenseFor,
   verdictFor,
   criticalCountOf,

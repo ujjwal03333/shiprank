@@ -9,6 +9,7 @@ import { lockedTweet } from "@/lib/tweet";
 import { cardLine } from "@/lib/grade";
 import { fetchScanFindings } from "@/lib/scan-findings";
 import { chipsFromFindings } from "@/lib/asked-vs-shipped";
+import { lanesFromMetadata } from "@/lib/card-lanes";
 
 export const revalidate = 60;
 
@@ -50,6 +51,7 @@ async function loadCard(id: string) {
     previousScore:
       typeof metaRow?.previousScore === "number" ? metaRow.previousScore : null,
     chips,
+    lanes: lanesFromMetadata(data["metadata"]),
   };
 }
 
@@ -121,6 +123,7 @@ export default async function PublicCardPage({
           staticStamp
           previousScore={card.previousScore}
           chips={card.chips}
+          lanes={card.lanes}
         />
       </div>
       <div className="w-full min-w-0 max-w-lg">

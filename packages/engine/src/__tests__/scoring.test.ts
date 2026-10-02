@@ -30,14 +30,14 @@ describe("overallScore", () => {
     ).toBe(80);
   });
 
-  it("averages only implemented stations", () => {
+  it("weights security 45 and healthy 30, ignoring empty stations", () => {
     expect(
       overallScore([
         station("security", 100, 10),
         station("quality", 80, 10),
         station("architecture", 0, 0),
       ]),
-    ).toBe(90);
+    ).toBe(92);
   });
 
   it("returns 0 when no station has implemented checks", () => {
@@ -50,8 +50,8 @@ describe("overallScore", () => {
   });
 });
 
-describe("runChecks Phase 6 stations", () => {
-  it("implements at least 3 checks each on COMP/INFRA/DATA/ARCH", () => {
+describe("runChecks lanes", () => {
+  it("does not score stations outside security, healthy, and human", () => {
     const profile = {
       root: "/p",
       files: [],
@@ -73,39 +73,11 @@ describe("runChecks Phase 6 stations", () => {
     } as CodeProfile;
 
     const stations = runChecks(profile);
-    for (const id of ["architecture", "data", "compliance", "infrastructure"] as const) {
+    for (const id of ["architecture", "data", "compliance", "infrastructure", "growth", "performance"] as const) {
       const s = stations.find((x) => x.station === id)!;
-      expect(s.implemented).toBeGreaterThanOrEqual(3);
+      expect(s.implemented).toBe(0);
+      expect(s.score).toBe(0);
     }
-  });
-
-  it("does not give COMP or INFRA a free 100 on an empty profile", () => {
-    const profile = {
-      root: "/p",
-      files: [],
-      packageJson: null,
-      dependencies: {},
-      tsConfig: null,
-      supabaseMigrations: [],
-      apiRoutes: [],
-      components: [],
-      testFiles: [],
-      configFiles: {},
-      envExample: null,
-      gitCommits: null,
-      framework: "unknown",
-      hasAuth: false,
-      hasDatabase: false,
-      hasPayments: false,
-      hasUserData: false,
-    } as CodeProfile;
-
-    const stations = runChecks(profile);
-    const compliance = stations.find((x) => x.station === "compliance")!;
-    const infra = stations.find((x) => x.station === "infrastructure")!;
-    expect(compliance.score).toBeLessThan(100);
-    expect(infra.score).toBeLessThan(100);
-    expect(compliance.checks.some((c) => c.confidence > 0 && !c.passed)).toBe(true);
-    expect(infra.checks.some((c) => c.confidence > 0 && !c.passed)).toBe(true);
+    expect(overallScore(stations)).toBeLessThanOrEqual(69);
   });
 });

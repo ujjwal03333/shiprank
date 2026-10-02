@@ -6,7 +6,7 @@ import { scoreToGrade } from "@shiprank/database";
 export { scoreToGrade as gradeFromScore };
 
 const VERSION = "1.0.0";
-const SUITE_VERSION = "1.0.0";
+const SUITE_VERSION = "1.1.0";
 const LINE = "─".repeat(46);
 
 function stationStatus(station: StationScore): string {
@@ -44,7 +44,7 @@ export function renderTerminalOutput(result: ScanResult): string {
   const lines: string[] = [];
   const { score, grade, stations, fingerprint, remediation } = result;
 
-  lines.push(`ShipRank v${VERSION} · check suite v${SUITE_VERSION}`);
+  lines.push(`ShipRank v${VERSION} · check suite v${result.checkSuiteVersion}`);
   lines.push("");
   lines.push(
     `Project: ${result.projectName} · ${result.fileCount} files · ${result.lineCount.toLocaleString()} lines · ${result.depCount} deps`,

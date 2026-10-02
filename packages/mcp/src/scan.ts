@@ -63,7 +63,7 @@ export async function runFullScan(dir: string): Promise<McpScanResult> {
 
   return {
     version: "1.0.0",
-    checkSuiteVersion: "1.0.0",
+    checkSuiteVersion: "1.1.0",
     projectName,
     root,
     contentHash,

@@ -65,7 +65,7 @@ export default async function ProjectHistoryPage({
   if (!project) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-        <p className="font-display text-xl text-ink">Project not found</p>
+        <h1 className="font-display text-xl text-ink">Project not found</h1>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import {
   normalizeTimestamp,
 } from "./attestation";
 import { classifyProvenance, meetsSybilFloor } from "./provenance";
+import { cardLanesFromScoreMap } from "./card-lanes";
 
 // Mirrors uploader.ts in @shiprank/cli — validated by Zod in /api/scan/route.ts
 export interface UploadPayload {
@@ -131,6 +132,7 @@ export async function ingestUpload(
   // ── 3. Create scan record (status: running) ───────────────────────────────
   const stationCount = Object.keys(payload.stationScores).length;
   const checkVersion = payload.checkVersion ?? "1.0.0";
+  const lanes = cardLanesFromScoreMap(payload.stationScores);
   const { data: scan, error: scanErr } = await db
     .from("scans")
     .insert({
@@ -150,6 +152,7 @@ export async function ingestUpload(
         aggregateEligible: meetsSybilFloor(payload),
         parentScanId: options.parentScanId ?? null,
         previousScore: options.previousScore ?? null,
+        ...(lanes ? { lanes } : {}),
       },
     })
     .select("id, created_at")

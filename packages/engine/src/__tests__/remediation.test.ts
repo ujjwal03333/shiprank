@@ -71,19 +71,16 @@ describe("parseMinutes", () => {
 
 // ── ROI ordering — the key invariant ─────────────────────────────────────────
 
-describe("ROI ordering", () => {
-  it("short-effort warning ranks above long-effort critical when ROI is higher", () => {
-    // totalWeight = 10 + 14 = 24 (both in same station, both failed)
-    // A: weight 10, 5 min  → stationGain=41.7, overallGain=20.8 (2 stations), ROI=4.17
-    // B: weight 14, 120 min → stationGain=58.3, overallGain=29.2 (2 stations), ROI=0.24
+describe("docket ordering", () => {
+  it("puts the critical ahead of a cheaper warning in the same lane", () => {
     const A = check("A", false, 10, "warning",  "5 min",   "safe");
     const B = check("B", false, 14, "critical", "2 hrs",   "review");
     const scores = twoStationPlan([A, B], []);
     const plan = buildRemediationPlan(scores);
 
-    expect(plan.all[0]!.checkId).toBe("A");
-    expect(plan.all[1]!.checkId).toBe("B");
-    expect(plan.all[0]!.roi).toBeGreaterThan(plan.all[1]!.roi);
+    expect(plan.all[0]!.checkId).toBe("B");
+    expect(plan.all[1]!.checkId).toBe("A");
+    expect(plan.all.length).toBeLessThanOrEqual(7);
   });
 
   it("among equal effort, higher scoreGain ranks first", () => {
@@ -208,7 +205,7 @@ describe("autoFixClass", () => {
     const plan = buildRemediationPlan([
       station("security",      [safe],   50),
       station("accessibility", [review], 50),
-      station("performance",   [human],  50),
+      station("quality",       [human],  50),
     ]);
 
     const classes = plan.all.map(i => i.autoFixClass);
@@ -268,10 +265,10 @@ describe("mixed severity fixture — ranked output", () => {
 
     const scores: StationScore[] = [
       station("security",    secChecks,    60),
-      station("growth",      seoChecks,    55),
+      station("quality",     seoChecks,    55),
       station("accessibility", [],        100),
       station("performance",   [],        100),
-      station("quality",       [],        100),
+      station("growth",        [],        100),
       station("architecture",  [],        100),
       station("data",          [],        100),
       station("compliance",    [],        100),
@@ -280,25 +277,15 @@ describe("mixed severity fixture — ranked output", () => {
 
     const plan = buildRemediationPlan(scores);
 
-    // Verify structure
+    expect(plan.all.length).toBeLessThanOrEqual(7);
     expect(plan.top3).toHaveLength(3);
     expect(plan.projectedScore).toBeGreaterThan(plan.currentScore);
-
-    // All top3 should be short-effort SAFE-AUTO or REVIEW items (not 30-min critical)
-    // because short-effort items have much higher ROI
-    const top3Efforts = plan.top3.map(i => i.effortMinutes);
-    expect(Math.max(...top3Efforts)).toBeLessThanOrEqual(15);
-
-    // SEC-001 (30 min effort) should NOT be in top3 even though it's critical
-    expect(plan.top3.map(i => i.checkId)).not.toContain("SEC-001");
-
-    // favicon (SEO-001: 16 weight, 5 min) should be near the top
-    const seoItem = plan.all.find(i => i.checkId === "SEO-001");
-    expect(seoItem).toBeDefined();
-    expect(seoItem!.roi).toBeGreaterThan(0);
+    // Worst security charge leads, even when it takes longer.
+    expect(plan.all[0]!.checkId).toBe("SEC-001");
+    expect(plan.all.map((i) => i.checkId)).toContain("SEO-001");
 
     // Snapshot the ranked IDs for visibility
     const rankedIds = plan.all.map(i => `${i.checkId} (${i.effortMinutes}min, ROI=${i.roi})`);
-    expect(rankedIds[0]).toMatch(/^(SEO-001|SEO-005|SEC-005)/); // 5-min items lead
+    expect(rankedIds[0]).toMatch(/^SEC-001/);
   });
 });

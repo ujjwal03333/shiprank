@@ -1,6 +1,7 @@
 import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { cardImageResponse } from "@/lib/card-image";
 import { formatPlatformName } from "@/lib/format-names";
+import { lanesFromMetadata, type CardLanes } from "@/lib/card-lanes";
 
 export const alt = "ShipRank card";
 export const size = { width: 1200, height: 630 };
@@ -17,13 +18,14 @@ export default async function Image({
   let score = 0;
   let grade = "F";
   let platform: string | null = null;
+  let lanes: CardLanes | null = null;
 
   if (isSupabaseConfigured()) {
     try {
       const db = getServiceClient();
       const { data } = await db
         .from("scans")
-        .select("score, grade, provenance, projects ( name, platform, framework )")
+        .select("score, grade, provenance, metadata, projects ( name, platform, framework )")
         .eq("id", id)
         .single();
       if (data && data["provenance"] !== "seed") {
@@ -38,6 +40,7 @@ export default async function Image({
         platform = proj?.platform
           ? formatPlatformName(proj.platform)
           : proj?.framework ?? null;
+        lanes = lanesFromMetadata(data["metadata"]);
       }
     } catch {
       /* default card */
@@ -49,6 +52,7 @@ export default async function Image({
     grade,
     projectName,
     platform,
+    lanes,
     size: "og",
   });
 }

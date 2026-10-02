@@ -393,7 +393,7 @@ export function CommandCard() {
               onKeyDown={handleKeyDown}
               placeholder="Describe what you want to build…"
               rows={4}
-              className="w-full resize-none bg-transparent px-5 pt-4 pb-2 font-body text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-subtle"
+              className="w-full resize-none bg-transparent px-5 pt-4 pb-2 font-body text-[15px] leading-relaxed text-ink placeholder:text-ink-subtle"
             />
 
             {prompt.length === 0 && (
@@ -457,7 +457,7 @@ export function CommandCard() {
                     }
                   }}
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className={`w-full rounded-lg border bg-canvas/60 px-4 py-2.5 font-mono text-sm text-ink outline-none transition-colors placeholder:text-ink-subtle focus:border-brand/50 disabled:opacity-60 ${
+                  className={`w-full rounded-lg border bg-canvas/60 px-4 py-2.5 font-mono text-sm text-ink transition-colors placeholder:text-ink-subtle focus:border-brand/50 disabled:opacity-60 ${
                     scanIdError ? "border-danger/50" : "border-border"
                   }`}
                 />

@@ -2,6 +2,7 @@ import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 import { cardImageResponse } from "@/lib/card-image";
 import { formatPlatformName } from "@/lib/format-names";
 import type { CardExportSize } from "@/lib/night-court";
+import { lanesFromMetadata, type CardLanes } from "@/lib/card-lanes";
 
 export const runtime = "nodejs";
 
@@ -22,13 +23,14 @@ export async function GET(
   let score = 0;
   let grade = "F";
   let platform: string | null = null;
+  let lanes: CardLanes | null = null;
 
   if (isSupabaseConfigured()) {
     try {
       const db = getServiceClient();
       const { data } = await db
         .from("scans")
-        .select("score, grade, provenance, projects ( name, platform, framework )")
+        .select("score, grade, provenance, metadata, projects ( name, platform, framework )")
         .eq("id", id)
         .single();
       if (data && data["provenance"] !== "seed") {
@@ -43,6 +45,7 @@ export async function GET(
         platform = proj?.platform
           ? formatPlatformName(proj.platform)
           : proj?.framework ?? null;
+        lanes = lanesFromMetadata(data["metadata"]);
       }
     } catch {
       /* default card */
@@ -54,6 +57,7 @@ export async function GET(
     grade,
     projectName,
     platform,
+    lanes,
     size,
   });
 }

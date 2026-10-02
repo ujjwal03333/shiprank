@@ -56,6 +56,9 @@ const nextConfig: NextConfig = {
     "shiprank",
   ],
   serverExternalPackages: ["@anthropic-ai/sdk"],
+  redirects: async () => [
+    { source: "/board", destination: "/leaderboard", permanent: true },
+  ],
   headers: async () => [
     {
       source: "/(.*)",

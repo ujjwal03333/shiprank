@@ -12,8 +12,8 @@ describe("parseEvidenceLoc", () => {
   });
 });
 
-describe("accessibility applicability", () => {
-  it("marks A11Y-001/002 N/A on a tree with no images or inputs", () => {
+describe("human lane applicability", () => {
+  it("does not score UI checks on a tree with no UI", () => {
     const profile = {
       root: "/p",
       files: [],
@@ -33,8 +33,8 @@ describe("accessibility applicability", () => {
       hasPayments: false,
       hasUserData: false,
     } as CodeProfile;
-    const a11y = runChecks(profile).find((s) => s.station === "accessibility")!;
-    expect(a11y.checks.find((c) => c.id === "A11Y-001")!.applicable).toBe(false);
-    expect(a11y.checks.find((c) => c.id === "A11Y-002")!.applicable).toBe(false);
+    const human = runChecks(profile).find((s) => s.station === "accessibility")!;
+    expect(human.checks.find((c) => c.id === "HUM-001")!.applicable).toBe(false);
+    expect(human.checks.find((c) => c.id === "HUM-001")!.confidence).toBe(0);
   });
 });

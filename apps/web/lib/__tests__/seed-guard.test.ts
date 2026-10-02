@@ -47,8 +47,8 @@ describe("seed-repos.json", () => {
     expect(repos).toHaveLength(10);
   });
 
-  it("starts with octocat/Hello-World", () => {
-    expect(repos[0]).toBe("octocat/Hello-World");
+  it("starts with a public repo slug", () => {
+    expect(repos[0]).toBe("Nutlope/twitterbio");
   });
 
   it("uses owner/repo slugs", () => {
