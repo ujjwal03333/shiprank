@@ -633,10 +633,77 @@ const checkHUM001: CheckFn = (profile) => {
   if (!webSurface(profile)) return unseen(b);
   const files = uiFiles(profile);
   if (files.length === 0) return unseen(b);
-  const hit = findIn(files, /<div\b[^>]*\bonClick\b/);
+  const hit = findActionDivOnClick(files);
   if (hit) return bad(b, "A div has onClick. It looks clickable and is not a button.", hit.file.path, hit.file, hit.index);
   return ok(b);
 };
+
+/** Opening tag from `<div` through the `>` that closes it. `=>` is not that `>`. */
+function openingDivTag(content: string, start: number): string {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = start; i < content.length; i++) {
+    const c = content[i]!;
+    if (quote) {
+      if (c === "\\") {
+        i++;
+        continue;
+      }
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      quote = c;
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}") depth = Math.max(0, depth - 1);
+    else if (c === ">" && depth === 0) return content.slice(start, i);
+  }
+  return content.slice(start);
+}
+
+/**
+ * A focus-delegate wrapper is not a button. role=group, or the handler only
+ * focuses an input/textarea and returns when the target is already a button.
+ */
+function isFocusDelegateDiv(tag: string): boolean {
+  if (/\brole\s*=\s*(?:["']group["']|\{\s*["']group["']\s*\})/.test(tag)) return true;
+  const handler = tag.match(/\bonClick\s*=\s*(\{[\s\S]*)$/)?.[1] ?? "";
+  const focusesField =
+    /\.focus\s*\(\s*\)/.test(handler) &&
+    /querySelector\s*\(\s*["'][^"']*\b(?:input|textarea)\b/.test(handler);
+  const returnsForButton =
+    /\breturn\b/.test(handler) && /closest\s*\(\s*["']button["']\s*\)/.test(handler);
+  if (!focusesField || !returnsForButton) return false;
+  const allowed = new Set([
+    "if",
+    "closest",
+    "querySelector",
+    "querySelectorAll",
+    "focus",
+    "preventDefault",
+    "stopPropagation",
+  ]);
+  const names = [...handler.matchAll(/\b([A-Za-z_][\w]*)\s*\(/g)].map((m) => m[1]!);
+  return names.every((name) => allowed.has(name));
+}
+
+function findActionDivOnClick(
+  files: FileInfo[],
+): { file: FileInfo; index: number; text: string } | null {
+  for (const file of files) {
+    const re = /<div\b[^>]*\bonClick\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(file.content))) {
+      const tag = openingDivTag(file.content, m.index);
+      re.lastIndex = m.index + Math.max(tag.length, m[0].length);
+      if (isFocusDelegateDiv(tag)) continue;
+      return { file, index: m.index, text: tag };
+    }
+  }
+  return null;
+}
 
 const checkHUM002: CheckFn = (profile) => {
   const b = base({

@@ -132,6 +132,56 @@ describe("three lanes", () => {
     expect(buildRemediationPlan(stations).all.length).toBeLessThanOrEqual(7);
   });
 
+  it("does not charge a focus-delegate wrapper as a button", () => {
+    const wrapper = `
+      export function InputGroupAddon() {
+        return (
+          <div
+            role="group"
+            data-slot="input-group-addon"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("button")) {
+                return
+              }
+              e.currentTarget.parentElement?.querySelector("input")?.focus()
+            }}
+          >
+            <button type="button">Open</button>
+          </div>
+        )
+      }
+    `;
+    const onlyWrapper = runChecks(profile({
+      framework: "nextjs",
+      files: [file("components/ui/input-group.tsx", wrapper)],
+    })).flatMap((s) => s.checks);
+    expect(onlyWrapper.find((c) => c.id === "HUM-001")!.passed).toBe(true);
+
+    const focusOnly = `
+      export function Addon() {
+        return (
+          <div
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("button")) return
+              e.currentTarget.parentElement?.querySelector("textarea")?.focus()
+            }}
+          />
+        )
+      }
+    `;
+    const onlyFocus = runChecks(profile({
+      framework: "nextjs",
+      files: [file("components/ui/addon.tsx", focusOnly)],
+    })).flatMap((s) => s.checks);
+    expect(onlyFocus.find((c) => c.id === "HUM-001")!.passed).toBe(true);
+
+    const withAction = runChecks(profile({
+      framework: "nextjs",
+      files: [file("components/ui/input-group.tsx", `${wrapper}\nexport function Row(){ return <div onClick={() => go()}>Go</div> }`)],
+    })).flatMap((s) => s.checks);
+    expect(withAction.find((c) => c.id === "HUM-001")!.passed).toBe(false);
+  });
+
   it("marks header, robots, 404, and div-onClick fixes safe", () => {
     const p = profile({
       framework: "nextjs",
