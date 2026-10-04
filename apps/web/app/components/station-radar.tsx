@@ -16,12 +16,18 @@ interface StationRadarProps {
   current: Record<string, number>;
   siteAverage?: Record<string, number> | null;
   siteAverageN?: number;
+  /** Detail page passes the Card names. Other callers keep the catalog labels. */
+  labels?: Record<string, string>;
 }
 
-export function StationRadar({ current, siteAverage, siteAverageN }: StationRadarProps) {
+function stationLabel(key: string, labels?: Record<string, string>): string {
+  return labels?.[key] ?? STATION_LABEL[key] ?? key;
+}
+
+export function StationRadar({ current, siteAverage, siteAverageN, labels }: StationRadarProps) {
   const stationKeys = Object.keys(current);
   const data = stationKeys.map((key) => ({
-    station: STATION_LABEL[key] ?? key,
+    station: stationLabel(key, labels),
     "This scan": current[key],
     ...(siteAverage && siteAverage[key] != null
       ? { "Site average": Math.round(siteAverage[key]!) }
@@ -43,7 +49,7 @@ export function StationRadar({ current, siteAverage, siteAverageN }: StationRada
       <div
         role="img"
         aria-label={`Station comparison radar chart. ${stationKeys
-          .map((key) => `${STATION_LABEL[key] ?? key}: ${current[key]}`)
+          .map((key) => `${stationLabel(key, labels)}: ${current[key]}`)
           .join(", ")}. The same figures are listed in the Station Scores panel above.`}
       >
       <ResponsiveContainer width="100%" height={280}>

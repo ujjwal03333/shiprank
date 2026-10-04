@@ -18,7 +18,7 @@ import { publicAppUrl } from "@/lib/public-url";
 import { fetchProjectScanPoints } from "@/lib/scan-history";
 import { computeVelocity, formatVelocityLabel } from "@/lib/velocity";
 import { fetchScanFindings } from "@/lib/scan-findings";
-import { gateFindingsForPlan, type GatedFinding } from "@/lib/plan-gating";
+import type { FindingRow } from "@/lib/plan-gating";
 import { resolvePlanForApiKey, SESSION_COOKIE } from "@/lib/subscription";
 import { cookies } from "next/headers";
 import { MonitorToggle } from "@/app/components/monitor-toggle";
@@ -181,6 +181,14 @@ function AttributionCard({
   );
 }
 
+/** Same three names as the Card. Other stored stations keep their catalog label. */
+function stationName(station: string): string {
+  if (station === "security") return "Security";
+  if (station === "accessibility") return "Human";
+  if (station === "code_quality" || station === "quality") return "Healthy";
+  return STATION_LABEL[station] ?? station;
+}
+
 function StationBars({ stations }: { stations: StationResult[] }) {
   const sorted = [...stations].sort((a, b) => b.score - a.score);
   return (
@@ -190,9 +198,10 @@ function StationBars({ stations }: { stations: StationResult[] }) {
       </h2>
       <div className="flex flex-col gap-3">
         {sorted.map((s) => {
-          const label = STATION_LABEL[s.station] ?? s.station;
+          const label = stationName(s.station);
           const color = STATION_COLOR[s.station] ?? "#8f8676";
-          const desc = STATION_DESCRIPTION[s.station] ?? "";
+          const renamed = s.station === "accessibility" || s.station === "code_quality" || s.station === "quality";
+          const desc = renamed ? "" : (STATION_DESCRIPTION[s.station] ?? "");
           return (
             <div key={s.station} className="flex flex-col gap-1.5" title={desc}>
               <div className="flex items-center justify-between">
@@ -242,15 +251,12 @@ const SEVERITY_TONE: Record<string, string> = {
 function FindingCard({
   finding,
   prevalence,
-  plan,
 }: {
-  finding: GatedFinding;
+  finding: FindingRow;
   prevalence?: CheckPrevalence | undefined;
-  plan: "free" | "pro" | "monitor";
 }) {
   const tone = SEVERITY_TONE[finding.severity] ?? "bg-surface-sunken text-ink-muted";
   const decision = decisionContextFor(finding.checkId, prevalence);
-  const locked = plan === "free";
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
@@ -266,77 +272,51 @@ function FindingCard({
       )}
       <details className="group">
         <summary className="cursor-pointer list-none font-mono text-xs text-brand marker:content-none">
-          {locked ? "Why did this happen?  Lock — Unlock with Pro →" : "Why did this happen?"}
+          Why did this happen?
         </summary>
-        {locked ? (
-          <p className="mt-2 font-body text-xs text-ink-muted">
-            Decision records are a Pro feature.{" "}
-            <Link href="/pricing" className="text-brand hover:underline">
-              Unlock with Pro →
-            </Link>
-          </p>
-        ) : (
-          <dl className="mt-2 flex flex-col gap-2 font-body text-xs leading-relaxed text-ink-muted">
-            <div>
-              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Pattern</dt>
-              <dd>{decision.aiPattern}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Probable cause</dt>
-              <dd>{decision.probableCause}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Should be</dt>
-              <dd>{decision.whatShouldBe}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Impact</dt>
-              <dd>{decision.impactChain}</dd>
-            </div>
-            {decision.frequencyPct != null && decision.sampleSize != null && (
-              <div>
-                <dt className="font-mono text-[10px] uppercase text-ink-subtle">Frequency</dt>
-                <dd>
-                  Fails in {decision.frequencyPct}% of eligible scans (n={decision.sampleSize}).
-                </dd>
-              </div>
-            )}
-          </dl>
-        )}
-      </details>
-      {finding.upgradeRequired ? (
-        <div className="relative overflow-hidden rounded-md border border-border bg-surface-sunken px-3 py-3">
-          <p aria-hidden className="select-none font-mono text-xs text-ink-subtle blur-[3px]">
-            Move all secrets to environment variables and rotate any exposed
-            keys — src/lib/client.ts:14
-          </p>
-          <div className="absolute inset-0 flex items-center justify-center bg-surface-sunken/60">
-            <Link
-              href="/pricing"
-              className="whitespace-nowrap font-body text-xs text-brand hover:underline"
-            >
-              Unlock fix details with Pro →
-            </Link>
+        <dl className="mt-2 flex flex-col gap-2 font-body text-xs leading-relaxed text-ink-muted">
+          <div>
+            <dt className="font-mono text-[10px] uppercase text-ink-subtle">Pattern</dt>
+            <dd>{decision.aiPattern}</dd>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {finding.filePath && (
-            <code className="font-mono text-xs text-ink-subtle">
-              {finding.filePath}
-              {finding.lineNumber != null ? `:${finding.lineNumber}` : ""}
-            </code>
-          )}
-          {finding.fixSuggestion && (
-            <div className="flex items-start justify-between gap-2 rounded-md bg-surface-sunken px-3 py-2">
-              <p className="font-body text-xs leading-relaxed text-ink-muted">
-                {finding.fixSuggestion}
-              </p>
-              <CopyButton text={finding.fixSuggestion} label="fix prompt" />
+          <div>
+            <dt className="font-mono text-[10px] uppercase text-ink-subtle">Probable cause</dt>
+            <dd>{decision.probableCause}</dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[10px] uppercase text-ink-subtle">Should be</dt>
+            <dd>{decision.whatShouldBe}</dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[10px] uppercase text-ink-subtle">Impact</dt>
+            <dd>{decision.impactChain}</dd>
+          </div>
+          {decision.frequencyPct != null && decision.sampleSize != null && (
+            <div>
+              <dt className="font-mono text-[10px] uppercase text-ink-subtle">Frequency</dt>
+              <dd>
+                Fails in {decision.frequencyPct}% of eligible scans (n={decision.sampleSize}).
+              </dd>
             </div>
           )}
-        </div>
-      )}
+        </dl>
+      </details>
+      <div className="flex flex-col gap-1.5">
+        {finding.filePath && (
+          <code className="font-mono text-xs text-ink-subtle">
+            {finding.filePath}
+            {finding.lineNumber != null ? `:${finding.lineNumber}` : ""}
+          </code>
+        )}
+        {finding.fixSuggestion && (
+          <div className="flex items-start justify-between gap-2 rounded-md bg-surface-sunken px-3 py-2">
+            <p className="font-body text-xs leading-relaxed text-ink-muted">
+              {finding.fixSuggestion}
+            </p>
+            <CopyButton text={finding.fixSuggestion} label="fix prompt" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -344,11 +324,9 @@ function FindingCard({
 function FindingsSection({
   findings,
   prevalenceMap,
-  plan,
 }: {
-  findings: GatedFinding[];
+  findings: FindingRow[];
   prevalenceMap: Map<string, CheckPrevalence>;
-  plan: "free" | "pro" | "monitor";
 }) {
   if (findings.length === 0) return null;
   return (
@@ -362,7 +340,6 @@ function FindingsSection({
             key={f.id}
             finding={f}
             prevalence={prevalenceMap.get(f.checkId)}
-            plan={plan}
           />
         ))}
       </div>
@@ -473,7 +450,7 @@ export default async function ScanPage({
     db,
     typedScan.station_results.map((s) => s.id),
   );
-  const findings = gateFindingsForPlan(rawFindings, resolvedPlan.plan);
+  const findings = rawFindings;
   const contract = pickContract(rawFindings, {
     platform: project?.platform ?? typedScan.fingerprints[0]?.platform ?? null,
   });
@@ -593,6 +570,9 @@ export default async function ScanPage({
               current={currentStationScores}
               siteAverage={siteAverage}
               siteAverageN={siteAverageN}
+              labels={Object.fromEntries(
+                typedScan.station_results.map((s) => [s.station, stationName(s.station)]),
+              )}
             />
           )}
           {project && (
@@ -607,7 +587,6 @@ export default async function ScanPage({
           <FindingsSection
             findings={failingFindings}
             prevalenceMap={prevalenceMap}
-            plan={resolvedPlan.plan}
           />
           <BadgeSnippet scanId={typedScan.id} appUrl={APP_URL} />
           {resolvedPlan.plan === "monitor" && project?.repo_url ? (
