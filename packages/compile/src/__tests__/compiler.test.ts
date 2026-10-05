@@ -201,7 +201,20 @@ describe("compile()", () => {
     expect(r.steps[0]!.constraints.toLowerCase()).toContain("rls");
     expect(r.steps[0]!.constraints).toContain("SEC-003");
     expect(r.raw).toContain("SEC-003");
-    expect(r.steps[0]!.stack).not.toMatch(/stripe/i);
+    expect(r.steps[0]!.stack).toBe("Supabase, Auth");
+    expect(r.raw).toContain("API_SECRET");
+    expect(r.raw).not.toMatch(/stripe|sk_live|sk_test|sitemap/i);
+  });
+
+  it("uses the Stripe secret sample only when Stripe was asked", async () => {
+    const client = {
+      messages: { stream: vi.fn().mockRejectedValue(new Error("down")) },
+    } as unknown as Anthropic;
+    const result = await compile("build a checkout with stripe", "user-stripe-sample", rateLimiter, client);
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.detectedStack).toContain("stripe");
+    expect(r.raw).toContain("STRIPE_SECRET_KEY");
+    expect(r.raw).not.toContain("API_SECRET");
   });
 
   it("appends MEMORY extras to the raw brief and CONSTRAINTS", async () => {

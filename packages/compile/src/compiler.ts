@@ -63,7 +63,7 @@ function ensureSecurityBaseline(
   elevatedConstraints: string[] = [],
 ): string {
   const selection = getApplicableConstraints(stackKeys, focusMode);
-  const dynamicBlock = renderConstraintBlock(selection, focusMode);
+  const dynamicBlock = renderConstraintBlock(selection, focusMode, stackKeys);
 
   let result = constraints ? `${constraints}\n\n${dynamicBlock}` : dynamicBlock;
 

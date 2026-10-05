@@ -103,8 +103,8 @@ export const CONSTRAINT_CATALOG: Constraint[] = [
     category: "universal",
     critical: true,
     text: "Secrets in server-side environment variables only; nothing secret in client bundles",
-    example: `// ✗ const key = "sk_live_51H8x...";\n// ✓ const key = process.env.STRIPE_SECRET_KEY;`,
-    verify: "grep -rE 'sk_live_|sk_test_|SERVICE_ROLE_KEY\\s*=' src/ should return nothing",
+    example: `// ✗ const key = "hardcoded-secret";\n// ✓ const key = process.env.API_SECRET;`,
+    verify: "grep -r hardcoded-secret src/ should return nothing",
   },
   {
     id: "universal-zod-validation",
@@ -352,24 +352,37 @@ export function getApplicableConstraints(
   };
 }
 
-function formatConstraint(c: Constraint, markCritical: boolean): string {
+const STRIPE_SECRET_EXAMPLE = `// ✗ const key = "sk_live_51H8x...";\n// ✓ const key = process.env.STRIPE_SECRET_KEY;`;
+const STRIPE_SECRET_VERIFY =
+  "grep -rE 'sk_live_|sk_test_|SERVICE_ROLE_KEY\\s*=' src/ should return nothing";
+
+function formatConstraint(c: Constraint, markCritical: boolean, stripeAsked: boolean): string {
   const marker = markCritical ? " **[CRITICAL — do not proceed until verified]**" : "";
-  return `- ${c.text} [${c.checkId}]${marker}\n  \`\`\`\n  ${c.example}\n  \`\`\`\n  Verify: ${c.verify}`;
+  const example =
+    c.id === "universal-secrets-env" && stripeAsked ? STRIPE_SECRET_EXAMPLE : c.example;
+  const verify =
+    c.id === "universal-secrets-env" && stripeAsked ? STRIPE_SECRET_VERIFY : c.verify;
+  return `- ${c.text} [${c.checkId}]${marker}\n  \`\`\`\n  ${example}\n  \`\`\`\n  Verify: ${verify}`;
 }
 
 /** Renders a constraint selection as the CONSTRAINTS section body, including an appended Phase 2: Harden block for deferred items. */
-export function renderConstraintBlock(selection: ConstraintSelection, focusMode: FocusMode): string {
+export function renderConstraintBlock(
+  selection: ConstraintSelection,
+  focusMode: FocusMode,
+  stackKeys: readonly StackKey[] = [],
+): string {
+  const stripeAsked = stackKeys.includes("stripe");
   const parts: string[] = [];
   if (selection.primary.length > 0) {
     parts.push(
       selection.primary
-        .map((c) => formatConstraint(c, focusMode === "security" && c.critical))
+        .map((c) => formatConstraint(c, focusMode === "security" && c.critical, stripeAsked))
         .join("\n"),
     );
   }
   if (selection.deferred.length > 0) {
     parts.push(
-      `### Phase 2: Harden\n${selection.deferred.map((c) => formatConstraint(c, false)).join("\n")}`,
+      `### Phase 2: Harden\n${selection.deferred.map((c) => formatConstraint(c, false, stripeAsked)).join("\n")}`,
     );
   }
   return parts.join("\n\n");
