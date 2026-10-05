@@ -2,6 +2,7 @@
  * Pure, dependency-free stack detection + constraint catalog.
  * Safe to import from client components — no Anthropic SDK, no Node built-ins.
  */
+import { hasKeywordOutside, nonProductSpans } from "./honesty";
 
 export type StackKey =
   | "supabase"
@@ -31,10 +32,10 @@ export const STACK_DEFS: StackDef[] = [
 ];
 
 export function detectStack(text: string): StackKey[] {
-  const lower = text.toLowerCase();
+  const spans = nonProductSpans(text);
   const found: StackKey[] = [];
   for (const def of STACK_DEFS) {
-    if (def.keywords.some((kw) => lower.includes(kw))) found.push(def.key);
+    if (def.keywords.some((kw) => hasKeywordOutside(text, kw, spans))) found.push(def.key);
   }
   return found;
 }
@@ -43,12 +44,19 @@ export function detectStack(text: string): StackKey[] {
 export function firstKeywordHit(text: string, key: StackKey): { keyword: string; index: number } | null {
   const def = STACK_DEFS.find((d) => d.key === key);
   if (!def) return null;
+  const spans = nonProductSpans(text);
   const lower = text.toLowerCase();
   let best: { keyword: string; index: number } | null = null;
   for (const kw of def.keywords) {
-    const idx = lower.indexOf(kw);
-    if (idx !== -1 && (best === null || idx < best.index)) {
-      best = { keyword: kw, index: idx };
+    let from = 0;
+    while (from <= lower.length) {
+      const idx = lower.indexOf(kw, from);
+      if (idx === -1) break;
+      if (!spans.some((span) => idx >= span.start && idx < span.end)) {
+        if (best === null || idx < best.index) best = { keyword: kw, index: idx };
+        break;
+      }
+      from = idx + kw.length;
     }
   }
   return best;

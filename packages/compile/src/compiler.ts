@@ -10,6 +10,13 @@ import {
   type FocusMode,
 } from "./stack";
 import { scorePrompt } from "./prompt-score";
+import {
+  filterMemoryLines,
+  isRepoRulesPrompt,
+  PROMPT_LIMIT,
+  PROMPT_LIMIT_MESSAGE,
+  REPO_RULES_MESSAGE,
+} from "./honesty";
 
 export interface CompiledStep {
   name: string;
@@ -32,7 +39,8 @@ export interface CompileResult {
 
 export type CompileError =
   | { kind: "rate_limited"; resetAt: number }
-  | { kind: "api_error"; message: string };
+  | { kind: "api_error"; message: string }
+  | { kind: "rejected"; message: string };
 
 function extractSection(text: string, header: string): string {
   const re = new RegExp(`## ${header}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`, "i");
@@ -126,12 +134,25 @@ function parseSteps(
 }
 
 function stackLabels(stackKeys: StackKey[]): string {
-  if (stackKeys.length === 0) {
-    return "Not specified in the prompt. Infer a conventional stack and state it.";
-  }
+  if (stackKeys.length === 0) return "Not specified in the prompt.";
   return stackKeys
     .map((key) => STACK_DEFS.find((d) => d.key === key)?.label ?? key)
     .join(", ");
+}
+
+/** Visible brief. An empty CONSTRAINTS body is omitted — never a blank header. */
+function renderCompiledRaw(steps: CompiledStep[], isSingleStep: boolean): string {
+  return steps
+    .map((step) => {
+      const parts: string[] = [];
+      if (!isSingleStep) parts.push(`### Step ${step.index}: ${step.name}`);
+      if (step.stack.trim()) parts.push(`## STACK\n${step.stack.trim()}`);
+      if (step.build.trim()) parts.push(`## BUILD\n${step.build.trim()}`);
+      if (step.constraints.trim()) parts.push(`## CONSTRAINTS\n${step.constraints.trim()}`);
+      if (step.output.trim()) parts.push(`## OUTPUT\n${step.output.trim()}`);
+      return parts.join("\n\n");
+    })
+    .join("\n\n");
 }
 
 /** Local brief when every provider call fails. Constraints are injected by parseSteps. */
@@ -149,8 +170,6 @@ export function deterministicBrief(
     prompt.trim(),
     `Local prompt score: ${score.total}/100 (stack ${score.stackClarity}, security ${score.securityCoverage}, completeness ${score.completeness}, structure ${score.structure}, testability ${score.testability}).`,
     `Focus: ${focusMode}. Do not invent APIs or providers that were not named.`,
-    "",
-    "## CONSTRAINTS",
     "",
     "## OUTPUT",
     "The app matches the prompt. Named auth, data, and integrations work. Constraints below pass a ShipRank scan.",
@@ -212,12 +231,20 @@ export async function compile(
   detectedStack?: StackKey[],
   focusMode: FocusMode = "security",
 ): Promise<CompileResult | CompileError> {
+  if (isRepoRulesPrompt(rawPrompt)) {
+    return { kind: "rejected", message: REPO_RULES_MESSAGE };
+  }
+  if (rawPrompt.length > PROMPT_LIMIT) {
+    return { kind: "rejected", message: PROMPT_LIMIT_MESSAGE };
+  }
+
   const rateLimit = await rateLimiter.check(identifier);
   if (!rateLimit.allowed) {
     return { kind: "rate_limited", resetAt: rateLimit.resetAt };
   }
 
   const stackKeys = detectedStack ?? detectStack(rawPrompt);
+  const memory = filterMemoryLines(elevatedConstraints, stackKeys, rawPrompt);
 
   let raw: string | null = null;
   // Injected client (tests) skips OpenRouter so mocks stay in control.
@@ -244,9 +271,9 @@ export async function compile(
     raw = deterministicBrief(rawPrompt, stackKeys, focusMode);
   }
 
-  const steps = parseSteps(raw, stackKeys, focusMode, elevatedConstraints);
+  const steps = parseSteps(raw, stackKeys, focusMode, memory);
   return {
-    raw: withMemoryBlock(raw, elevatedConstraints),
+    raw: renderCompiledRaw(steps, steps.length === 1),
     steps,
     isSingleStep: steps.length === 1,
     rateLimit,

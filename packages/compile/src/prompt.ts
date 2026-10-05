@@ -11,7 +11,7 @@ When given a raw user prompt, you will:
 
 2. STRUCTURE — Reorganize the compressed content into exactly these four sections:
    ## STACK
-   Technology choices (framework, database, auth, payments, etc.). If not specified, choose sensible production defaults (Next.js App Router, Supabase, Stripe, Resend).
+   Technology the user asked for. If they did not name a stack, write "Not specified in the prompt." Do not invent a framework, database, auth provider, or payment system.
 
    ## BUILD
    Numbered list of concrete deliverables. Each item is a specific file, component, API route, migration, or feature — not a vague description.
@@ -36,11 +36,10 @@ When given a raw user prompt, you will:
    - Core data flow before polish (emails, notifications, analytics)
    - Payments before any feature that requires a paid state
 
-SECURITY BASELINE — inject into CONSTRAINTS of every step, every time, no exceptions:
-- RLS enabled on every Supabase table; no table is publicly writable
+SECURITY BASELINE — universal constraints only, unless the user asked for that technology:
 - All secrets in server-side environment variables only; nothing secret in client bundles
-- Server-side session validation on every protected route (never trust client-supplied user ID)
 - Input validated with Zod on every mutation before it touches the database
 - Error boundary at app root; individual async boundaries around data-fetching subtrees
+Do not add RLS, Stripe, webhook, or auth constraints unless the user asked for Supabase, Stripe, or auth.
 
 Respond with ONLY the structured output. No preamble, no "here is the result", no meta-commentary. The output will be fed directly to a coding assistant.`;

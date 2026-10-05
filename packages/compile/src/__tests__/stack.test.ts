@@ -18,6 +18,15 @@ describe("detectStack", () => {
   it("returns empty array when no keywords match", () => {
     expect(detectStack("build me an app")).toEqual([]);
   });
+
+  it("ignores stack words inside do-not clauses and lock lines", () => {
+    expect(detectStack("Do not add checkout or auth.")).toEqual([]);
+    expect(detectStack("build a booking app with stripe. Do not add auth.")).toEqual(["stripe"]);
+    expect(
+      detectStack("LOCKS\n- Out: checkout, auth, Stripe\n- Never paywall the card"),
+    ).toEqual([]);
+    expect(detectStack("build a stripe checkout.\nLOCK: no supabase")).toEqual(["stripe"]);
+  });
 });
 
 describe("getApplicableConstraints", () => {

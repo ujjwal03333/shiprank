@@ -5,7 +5,7 @@ import { checkRateLimit, ipFromRequest, rateLimitHeaders } from "@/lib/rate-limi
 import { loadMemoryConstraints } from "@/lib/memory";
 
 const CompileSchema = z.object({
-  prompt: z.string().min(10).max(2000),
+  prompt: z.string().min(10),
   focusMode: z.enum(["security", "speed", "scale"]).default("security"),
 });
 
@@ -64,6 +64,9 @@ export async function POST(request: Request) {
   );
 
   if ("kind" in result) {
+    if (result.kind === "rejected") {
+      return NextResponse.json({ error: result.message }, { status: 422 });
+    }
     if (result.kind === "rate_limited") {
       return NextResponse.json(
         { error: "Daily compile limit reached", resetAt: result.resetAt },

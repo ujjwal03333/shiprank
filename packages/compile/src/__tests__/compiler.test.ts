@@ -59,6 +59,7 @@ Next.js App Router
 
 import { compile } from "../compiler";
 import { createMemoryRateLimiter } from "../rate-limiter";
+import { PROMPT_LIMIT, PROMPT_LIMIT_MESSAGE, REPO_RULES_MESSAGE } from "../honesty";
 
 describe("compile()", () => {
   let rateLimiter: ReturnType<typeof createMemoryRateLimiter>;
@@ -193,9 +194,14 @@ describe("compile()", () => {
     const r = result as Exclude<typeof result, { kind: string }>;
     expect(r.raw).toContain("## STACK");
     expect(r.raw).toContain("## BUILD");
-    expect(r.detectedStack).toEqual(expect.arrayContaining(["supabase", "auth"]));
+    expect(r.raw).toContain("todo app with supabase auth");
+    expect(r.raw).toContain("## CONSTRAINTS");
+    expect(r.raw).not.toMatch(/## CONSTRAINTS\s*\n\s*(##|$)/);
+    expect(r.detectedStack).toEqual(["supabase", "auth"]);
     expect(r.steps[0]!.constraints.toLowerCase()).toContain("rls");
     expect(r.steps[0]!.constraints).toContain("SEC-003");
+    expect(r.raw).toContain("SEC-003");
+    expect(r.steps[0]!.stack).not.toMatch(/stripe/i);
   });
 
   it("appends MEMORY extras to the raw brief and CONSTRAINTS", async () => {
@@ -224,6 +230,99 @@ describe("compile()", () => {
     const r = result as Exclude<typeof result, { kind: string }>;
     expect(r.raw).not.toContain("MEMORY");
     expect(r.steps[0]!.constraints).not.toContain("MEMORY");
+  });
+
+  it("rejects repo rules instead of inventing a stack", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const prompt = `Fix Compile honesty only. Do not mount Compile on /. Do not add stations, checkout, or a paywall.
+
+LOCKS
+- Out: checkout, auth, Stripe
+Never paywall the Card.`;
+    const result = await compile(prompt, "user-rules", rateLimiter, client);
+    expect(result).toEqual({ kind: "rejected", message: REPO_RULES_MESSAGE });
+    expect(client.messages.stream).not.toHaveBeenCalled();
+  });
+
+  it("still compiles a product fix that happens to say do not", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const result = await compile(
+      "Fix the signup form. Do not store the password.",
+      "user-fix-form",
+      rateLimiter,
+      client,
+    );
+    expect(result).not.toHaveProperty("kind", "rejected");
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.detectedStack).toContain("auth");
+    expect(r.detectedStack).not.toContain("stripe");
+  });
+
+  it("rejects an over-long prompt with the limit and does not slice it", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const prompt = `${"build a booking app with stripe. Never ".repeat(20)}${"N".repeat(20)}ever ${"y".repeat(PROMPT_LIMIT)}`;
+    expect(prompt.length).toBeGreaterThan(PROMPT_LIMIT);
+    expect(prompt.includes("Never")).toBe(true);
+    const result = await compile(prompt, "user-long", rateLimiter, client);
+    expect(result).toEqual({ kind: "rejected", message: PROMPT_LIMIT_MESSAGE });
+    expect(PROMPT_LIMIT_MESSAGE).toContain(String(PROMPT_LIMIT));
+    expect(client.messages.stream).not.toHaveBeenCalled();
+  });
+
+  it("keeps the full prompt in BUILD when the model call fails", async () => {
+    const client = {
+      messages: { stream: vi.fn().mockRejectedValue(new Error("down")) },
+    } as unknown as Anthropic;
+    const prompt = "build a notes dashboard. Never log passwords. The word Never must survive intact.";
+    const result = await compile(prompt, "user-full", rateLimiter, client);
+    const r = result as Exclude<typeof result, { kind: string }>;
+    expect(r.steps[0]!.build).toContain("Never must survive intact.");
+    expect(r.steps[0]!.build).not.toContain("Neve ");
+    expect(r.detectedStack).toEqual([]);
+    expect(r.steps[0]!.stack).toBe("Not specified in the prompt.");
+    expect(r.steps[0]!.constraints.trim().length).toBeGreaterThan(0);
+    expect(r.raw).toContain("SEC-001");
+  });
+
+  it("drops memory lines that do not match the detected stack", async () => {
+    const client = makeClient(SINGLE_STEP_RESPONSE);
+    const memory = [
+      "- A11Y-005 — Add a skip-link to main content",
+      "- QUAL-001 — Add Vitest or Jest tests",
+      "- SEC-033 — Content-Security-Policy: default-src 'self'",
+      "- SEO-002 — Add OG tags",
+      "- SEO-004 — Add a sitemap.xml",
+      "- SEC-012 — Verify Stripe webhook signatures",
+      "- SEC-001 — Secrets stay in environment variables",
+    ];
+    const memoryOf = (raw: string) => {
+      const index = raw.indexOf("\nMEMORY\n");
+      return index === -1 ? "" : raw.slice(index);
+    };
+
+    const cli = await compile("build a notes cli", "user-cli-mem", rateLimiter, client, memory);
+    const cliMemory = memoryOf((cli as Exclude<typeof cli, { kind: string }>).raw);
+    expect(cliMemory).toContain("SEC-001");
+    expect(cliMemory).not.toMatch(/skip-link|Vitest|OG tags|sitemap|Stripe|Content-Security-Policy/i);
+
+    const web = await compile("build a next.js dashboard", "user-web-mem", rateLimiter, client, memory);
+    const webMemory = memoryOf((web as Exclude<typeof web, { kind: string }>).raw);
+    expect(webMemory).toContain("skip-link");
+    expect(webMemory).toContain("OG tags");
+    expect(webMemory).toContain("sitemap");
+    expect(webMemory).toContain("Content-Security-Policy");
+    expect(webMemory).not.toMatch(/Vitest|Stripe/i);
+
+    const stripe = await compile(
+      "build a stripe checkout api",
+      "user-stripe-mem",
+      rateLimiter,
+      client,
+      memory,
+    );
+    const stripeMemory = memoryOf((stripe as Exclude<typeof stripe, { kind: string }>).raw);
+    expect(stripeMemory).toContain("Verify Stripe webhook signatures");
+    expect(stripeMemory).not.toMatch(/sitemap|OG tags|skip-link|Vitest/i);
   });
 
   it("returns rate_limited when the limiter is exhausted", async () => {

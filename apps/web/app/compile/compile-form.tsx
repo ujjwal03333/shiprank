@@ -83,7 +83,8 @@ export function CompileForm() {
 
       if (res.status === 422) {
         setRaw(null);
-        setError(TOO_SHORT);
+        const message = data.error?.trim();
+        setError(message ? message : TOO_SHORT);
         return;
       }
 
@@ -149,7 +150,6 @@ export function CompileForm() {
           }}
           placeholder="what you want built."
           minLength={10}
-          maxLength={2000}
           rows={6}
           required
           spellCheck
